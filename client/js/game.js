@@ -205,6 +205,11 @@ class Game {
 
     // Welcome message
     tts.speak('Chào mừng đến với One Piece Arena. Game đối kháng cho người khiếm thị');
+
+    // Play lobby enter sound after audio is initialized
+    setTimeout(() => {
+      audioManager.playMenuSound('lobby');
+    }, 500);
   }
 
   setupSocketListeners() {
@@ -304,11 +309,27 @@ class Game {
 
   setupKeyboardControls() {
     document.addEventListener('keydown', (e) => {
-      this.keys[e.key.toLowerCase()] = true;
+      // Map arrow keys to movement keys
+      const arrowKeyMap = {
+        'ArrowLeft': 'a',
+        'ArrowRight': 'd',
+        'ArrowUp': 'w',
+        'ArrowDown': 's'
+      };
+
+      let key = e.key.toLowerCase();
+
+      // Convert arrow keys to movement keys
+      if (arrowKeyMap[e.key]) {
+        key = arrowKeyMap[e.key];
+        audioManager.playMenuSound('navigate');
+      }
+
+      this.keys[key] = true;
 
       if (this.gameState && this.myPlayer) {
         const keyMap = { 'q': 0, 'w': 1, 'e': 2, 'r': 3 };
-        const skillIndex = keyMap[e.key.toLowerCase()];
+        const skillIndex = keyMap[key];
 
         if (skillIndex !== undefined) {
           this.useSkill(skillIndex);
@@ -322,10 +343,30 @@ class Game {
           this.dodge();
         }
       }
+
+      // Play enter sound when pressing Enter on focused button
+      if (e.key === 'Enter' && document.activeElement.tagName === 'BUTTON') {
+        audioManager.playMenuSound('enter');
+      }
     });
 
     document.addEventListener('keyup', (e) => {
-      this.keys[e.key.toLowerCase()] = false;
+      // Map arrow keys to movement keys
+      const arrowKeyMap = {
+        'ArrowLeft': 'a',
+        'ArrowRight': 'd',
+        'ArrowUp': 'w',
+        'ArrowDown': 's'
+      };
+
+      let key = e.key.toLowerCase();
+
+      // Convert arrow keys to movement keys
+      if (arrowKeyMap[e.key]) {
+        key = arrowKeyMap[e.key];
+      }
+
+      this.keys[key] = false;
     });
   }
 

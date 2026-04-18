@@ -187,10 +187,13 @@ class AudioManager {
 
   async preloadMenuSounds() {
     const menuSounds = [
-      'sfx/snd_00272.wav',
-      'sfx/snd_00273.wav',
-      'sfx/snd_00248.wav',
-      'sfx/snd_00249.wav'
+      'sfx/snd_00272.wav', // hover
+      'sfx/snd_00273.wav', // click
+      'sfx/snd_00248.wav', // select
+      'sfx/snd_00249.wav', // back
+      'sfx/snd_00294.wav', // navigate (arrow keys)
+      'sfx/snd_00277.wav', // enter/confirm
+      'sfx/snd_00278.wav'  // lobby enter
     ];
 
     const promises = menuSounds.map((path, idx) =>
@@ -227,7 +230,10 @@ class AudioManager {
       hover: 'menu_0',
       click: 'menu_1',
       select: 'menu_2',
-      back: 'menu_3'
+      back: 'menu_3',
+      navigate: 'menu_4',
+      enter: 'menu_5',
+      lobby: 'menu_6'
     };
     this.play(sounds[type] || 'menu_0', 0.5);
   }
