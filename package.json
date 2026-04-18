@@ -1,0 +1,21 @@
+{
+  "name": "one-piece-arena",
+  "version": "1.0.0",
+  "description": "One Piece fighting game with real-time multiplayer",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node server/index.js"
+  },
+  "keywords": ["game", "one-piece", "multiplayer", "websocket"],
+  "author": "",
+  "license": "ISC",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "socket.io": "^4.8.3"
+  }
+}

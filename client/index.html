@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>One Piece Arena</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Lobby Screen -->
+    <div id="lobby-screen" class="screen active">
+      <h1>⚔️ ONE PIECE ARENA</h1>
+      <div class="player-count">Online: <span id="online-count">0</span>/7</div>
+
+      <div class="lobby-actions">
+        <button class="btn btn-primary" onclick="game.createRoom('1v1')">Tạo phòng 1v1</button>
+        <button class="btn btn-primary" onclick="game.createRoom('2v2')">Tạo phòng 2v2</button>
+      </div>
+
+      <div class="room-list">
+        <h3>Phòng đang chờ</h3>
+        <div id="room-list-container"></div>
+      </div>
+    </div>
+
+    <!-- Room Screen -->
+    <div id="room-screen" class="screen">
+      <h2>Phòng: <span id="room-mode"></span></h2>
+      <button class="btn btn-back" onclick="game.leaveRoom()">← Rời phòng</button>
+
+      <div class="hero-selection">
+        <h3>Chọn Hero</h3>
+        <div class="hero-grid">
+          <div class="hero-card" onclick="game.selectHero('luffy')">
+            <div class="hero-name">Luffy Gear 5</div>
+            <div class="hero-stats">HP: 1000</div>
+          </div>
+          <div class="hero-card" onclick="game.selectHero('zoro')">
+            <div class="hero-name">Zoro Timeskip</div>
+            <div class="hero-stats">HP: 1100</div>
+          </div>
+          <div class="hero-card" onclick="game.selectHero('sanji')">
+            <div class="hero-name">Sanji Raid Suit</div>
+            <div class="hero-stats">HP: 950</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="players-in-room">
+        <h3>Người chơi</h3>
+        <div id="players-container"></div>
+      </div>
+
+      <button id="ready-btn" class="btn btn-success" onclick="game.playerReady()" disabled>Sẵn sàng</button>
+    </div>
+
+    <!-- Game Screen -->
+    <div id="game-screen" class="screen">
+      <div class="game-ui">
+        <div id="game-info"></div>
+        <canvas id="game-canvas"></canvas>
+
+        <div class="skills-bar">
+          <button class="skill-btn" data-skill="0" onclick="game.useSkill(0)">
+            <span class="skill-key">Q</span>
+            <span class="skill-name">Skill 1</span>
+            <span class="cooldown"></span>
+          </button>
+          <button class="skill-btn" data-skill="1" onclick="game.useSkill(1)">
+            <span class="skill-key">W</span>
+            <span class="skill-name">Skill 2</span>
+            <span class="cooldown"></span>
+          </button>
+          <button class="skill-btn" data-skill="2" onclick="game.useSkill(2)">
+            <span class="skill-key">E</span>
+            <span class="skill-name">Skill 3</span>
+            <span class="cooldown"></span>
+          </button>
+          <button class="skill-btn" data-skill="3" onclick="game.useSkill(3)">
+            <span class="skill-key">R</span>
+            <span class="skill-name">Skill 4</span>
+            <span class="cooldown"></span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/game.js"></script>
+</body>
+</html>
