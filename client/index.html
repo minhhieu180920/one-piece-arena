@@ -14,9 +14,27 @@
       <div class="player-count">Online: <span id="online-count">0</span>/7</div>
 
       <div class="lobby-actions">
-        <button class="btn btn-primary" onclick="game.createRoom('1v1')">Tạo phòng 1v1</button>
-        <button class="btn btn-primary" onclick="game.createRoom('2v2')">Tạo phòng 2v2</button>
+        <button class="btn btn-primary" onclick="game.createRoom('1v1', false)">Tạo phòng 1v1</button>
+        <button class="btn btn-primary" onclick="game.createRoom('2v2', false)">Tạo phòng 2v2</button>
       </div>
+
+      <div class="lobby-actions" style="margin-top: 20px;">
+        <h3 style="width: 100%; text-align: center; margin-bottom: 15px;">🤖 Chơi với AI</h3>
+        <button class="btn btn-primary" onclick="game.showAIDifficulty('1v1')">1v1 vs AI</button>
+        <button class="btn btn-primary" onclick="game.showAIDifficulty('2v2')">2v2 vs AI</button>
+      </div>
+
+      <!-- AI Difficulty Modal -->
+      <div id="ai-modal" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.95); padding: 30px; border-radius: 15px; z-index: 1000; border: 2px solid #ff6b35;">
+        <h3 style="margin-bottom: 20px;">Chọn độ khó AI</h3>
+        <div style="display: flex; flex-direction: column; gap: 15px;">
+          <button class="btn btn-success" onclick="game.createRoomWithAI('easy')">🟢 Dễ (Easy)</button>
+          <button class="btn btn-primary" onclick="game.createRoomWithAI('medium')">🟡 Trung bình (Medium)</button>
+          <button class="btn" style="background: #dc3545; color: white;" onclick="game.createRoomWithAI('hard')">🔴 Khó (Hard)</button>
+          <button class="btn btn-back" onclick="game.closeAIModal()">Hủy</button>
+        </div>
+      </div>
+      <div id="ai-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 999;" onclick="game.closeAIModal()"></div>
 
       <div class="room-list">
         <h3>Phòng đang chờ</h3>

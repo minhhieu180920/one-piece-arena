@@ -111,6 +111,21 @@ class Game {
       this.handleDamageDealt(data);
     });
 
+    this.socket.on('playerMoved', (data) => {
+      // Update enemy position
+      const enemy = this.enemies.find(e => e.id === data.playerId);
+      if (enemy) {
+        enemy.position = { x: data.x, y: data.y };
+      }
+    });
+
+    this.socket.on('playerDodged', (data) => {
+      // Visual feedback for dodge
+      if (data.playerId !== this.playerId) {
+        audioManager.playDodge();
+      }
+    });
+
     this.socket.on('playerLeft', () => {
       if (this.currentRoom) {
         this.updatePlayersInRoom();
@@ -213,16 +228,37 @@ class Game {
       const div = document.createElement('div');
       div.className = 'player-item';
 
+      const player = this.currentRoom.players.find(p => p === pid);
       const isMe = pid === this.playerId;
-      const playerName = isMe ? 'Bạn' : 'Player';
+      const isBot = pid.startsWith('bot_');
+      const playerName = isMe ? 'Bạn' : (isBot ? '🤖 AI Bot' : 'Player');
 
       div.innerHTML = `<span>${playerName}</span><span>Đang chọn hero...</span>`;
       container.appendChild(div);
     });
   }
 
-  createRoom(mode) {
-    this.socket.emit('createRoom', { mode });
+  createRoom(mode, withAI = false, aiDifficulty = 'medium') {
+    this.socket.emit('createRoom', { mode, withAI, aiDifficulty });
+  }
+
+  showAIDifficulty(mode) {
+    this.pendingAIMode = mode;
+    document.getElementById('ai-modal').style.display = 'block';
+    document.getElementById('ai-overlay').style.display = 'block';
+  }
+
+  closeAIModal() {
+    document.getElementById('ai-modal').style.display = 'none';
+    document.getElementById('ai-overlay').style.display = 'none';
+    this.pendingAIMode = null;
+  }
+
+  createRoomWithAI(difficulty) {
+    if (this.pendingAIMode) {
+      this.createRoom(this.pendingAIMode, true, difficulty);
+      this.closeAIModal();
+    }
   }
 
   joinRoom(roomId) {
@@ -270,8 +306,12 @@ class Game {
     this.gameState.players.forEach(player => {
       const div = document.createElement('div');
       div.className = 'player-status';
+      const isMe = player.id === this.playerId;
+      const isAI = player.isAI || player.id.startsWith('bot_');
+      const label = isMe ? 'BẠN' : (isAI ? '🤖 AI BOT' : 'ĐỐI THỦ');
+
       div.innerHTML = `
-        <div><strong>${player.id === this.playerId ? 'BẠN' : 'ĐỐI THỦ'}</strong></div>
+        <div><strong>${label}</strong></div>
         <div>${player.heroId.toUpperCase()}</div>
         <div class="hp-bar">
           <div class="hp-fill" id="hp-${player.id}" style="width: ${(player.hp / player.maxHp) * 100}%"></div>
@@ -475,12 +515,14 @@ class Game {
 
     // Draw enemies
     this.enemies.forEach((enemy, idx) => {
-      const enemyX = 600;
-      const enemyY = this.ground - 50;
-      this.ctx.fillStyle = '#ff6b35';
+      const enemyX = enemy.position ? enemy.position.x : 600;
+      const enemyY = enemy.position ? enemy.position.y : this.ground - 50;
+      const isAI = enemy.isAI || enemy.id.startsWith('bot_');
+
+      this.ctx.fillStyle = isAI ? '#ffa500' : '#ff6b35';
       this.ctx.fillRect(enemyX, enemyY, 50, 50);
       this.ctx.fillStyle = '#fff';
-      this.ctx.fillText('ENEMY', enemyX + 5, enemyY - 5);
+      this.ctx.fillText(isAI ? 'AI' : 'ENEMY', enemyX + 5, enemyY - 5);
     });
   }
 

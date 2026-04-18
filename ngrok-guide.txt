@@ -1,0 +1,41 @@
+===========================================
+  HƯỚNG DẪN NGROK - CHƠI QUA INTERNET
+===========================================
+
+BƯỚC 1: TẢI NGROK
+-----------------
+Vào: https://ngrok.com/download
+Chọn Windows → Tải về → Giải nén
+
+BƯỚC 2: CHẠY SERVER
+-------------------
+Double click: START.bat
+(Hoặc chạy: npm start)
+
+BƯỚC 3: CHẠY NGROK
+------------------
+1. Mở Command Prompt (cmd)
+2. Chuyển đến thư mục ngrok:
+   cd C:\path\to\ngrok
+3. Chạy lệnh:
+   ngrok http 3000
+
+BƯỚC 4: LẤY LINK
+----------------
+Ngrok sẽ hiển thị:
+Forwarding: https://abc123.ngrok-free.app -> http://localhost:3000
+
+Copy link: https://abc123.ngrok-free.app
+
+BƯỚC 5: CHIA SẺ
+---------------
+Gửi link cho bạn bè!
+Họ mở link là chơi được ngay!
+
+LƯU Ý:
+------
+- Giữ cả 2 cửa sổ (server + ngrok) mở
+- Link thay đổi mỗi lần chạy ngrok
+- Miễn phí, không cần tài khoản
+
+===========================================

@@ -3,6 +3,7 @@ const http = require('http');
 const socketIO = require('socket.io');
 const path = require('path');
 const { HEROES } = require('../shared/heroes');
+const { AIBot } = require('../shared/ai-bot');
 
 const app = express();
 const server = http.createServer(app);
@@ -18,6 +19,7 @@ const PORT = process.env.PORT || 3000;
 // Game state
 const players = new Map();
 const rooms = new Map();
+const aiBots = new Map();
 let roomIdCounter = 1;
 
 // Serve static files
@@ -50,7 +52,7 @@ io.on('connection', (socket) => {
 
   // Create room
   socket.on('createRoom', (data) => {
-    const { mode } = data; // '1v1' or '2v2'
+    const { mode, withAI, aiDifficulty } = data; // '1v1' or '2v2', withAI, difficulty
     const maxPlayers = mode === '1v1' ? 2 : 4;
 
     const roomId = `room_${roomIdCounter++}`;
@@ -60,11 +62,18 @@ io.on('connection', (socket) => {
       maxPlayers,
       players: [socket.id],
       status: 'waiting',
-      gameState: null
+      gameState: null,
+      hasAI: withAI || false,
+      aiDifficulty: aiDifficulty || 'medium'
     };
 
     rooms.set(roomId, room);
     players.get(socket.id).room = roomId;
+
+    // Add AI bot if requested
+    if (withAI) {
+      addAIBot(roomId, room);
+    }
 
     socket.join(roomId);
     socket.emit('roomCreated', { roomId, room });
@@ -212,7 +221,8 @@ function startGame(room) {
         heroId: p.hero,
         hp: hero.hp,
         maxHp: hero.hp,
-        skills: hero.skills.map(s => ({ ...s, lastUsed: 0 }))
+        skills: hero.skills.map(s => ({ ...s, lastUsed: 0 })),
+        isAI: p.isAI || false
       };
     }),
     startTime: Date.now(),
@@ -223,10 +233,110 @@ function startGame(room) {
 
   io.to(room.id).emit('gameStart', gameState);
   io.emit('roomListUpdate', Array.from(rooms.values()).filter(r => r.status === 'waiting'));
+
+  // Start AI loop if room has AI
+  if (room.hasAI) {
+    startAILoop(room.id);
+  }
+}
+
+function addAIBot(roomId, room) {
+  const botId = `bot_${Date.now()}`;
+  const heroes = ['luffy', 'zoro', 'sanji'];
+  const randomHero = heroes[Math.floor(Math.random() * heroes.length)];
+
+  // Create AI player
+  players.set(botId, {
+    id: botId,
+    name: 'AI Bot',
+    hero: randomHero,
+    room: roomId,
+    ready: true,
+    isAI: true
+  });
+
+  // Create AI controller
+  const aiBot = new AIBot(botId, randomHero, room.aiDifficulty);
+  aiBots.set(botId, aiBot);
+
+  room.players.push(botId);
+
+  io.to(roomId).emit('playerJoined', {
+    playerId: botId,
+    room
+  });
+
+  io.to(roomId).emit('heroSelected', {
+    playerId: botId,
+    heroId: randomHero,
+    room
+  });
+
+  io.to(roomId).emit('playerReadyUpdate', {
+    playerId: botId,
+    ready: true
+  });
+}
+
+function startAILoop(roomId) {
+  const aiInterval = setInterval(() => {
+    const room = rooms.get(roomId);
+    if (!room || room.status !== 'playing') {
+      clearInterval(aiInterval);
+      return;
+    }
+
+    const gameState = room.gameState;
+    if (!gameState) return;
+
+    // Find AI bots in this room
+    room.players.forEach(pid => {
+      const player = players.get(pid);
+      if (!player || !player.isAI) return;
+
+      const aiBot = aiBots.get(pid);
+      if (!aiBot) return;
+
+      // Get enemies (non-AI players)
+      const enemies = gameState.players.filter(p => p.id !== pid);
+
+      // AI decides action
+      const action = aiBot.update(gameState, enemies);
+
+      if (action) {
+        if (action.type === 'skill') {
+          io.to(roomId).emit('skillUsed', {
+            playerId: pid,
+            skillId: action.skillIndex,
+            targetId: action.targetId,
+            timestamp: Date.now()
+          });
+        } else if (action.type === 'move') {
+          const moveSpeed = aiBot.config.moveSpeed;
+          if (action.direction === 'left') {
+            aiBot.position.x -= moveSpeed;
+          } else {
+            aiBot.position.x += moveSpeed;
+          }
+
+          io.to(roomId).emit('playerMoved', {
+            playerId: pid,
+            x: aiBot.position.x,
+            y: aiBot.position.y
+          });
+        } else if (action.type === 'dodge') {
+          io.to(roomId).emit('playerDodged', {
+            playerId: pid
+          });
+        }
+      }
+    });
+  }, 500); // AI updates every 500ms
 }
 
 server.listen(PORT, () => {
   console.log(`🎮 One Piece Arena Server running on http://localhost:${PORT}`);
   console.log(`📊 Max players: 7`);
   console.log(`⚔️  Game modes: 1v1, 2v2`);
+  console.log(`🤖 AI Bot: Available`);
 });
