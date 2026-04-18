@@ -308,8 +308,26 @@ class Game {
   }
 
   setupKeyboardControls() {
+    // Menu navigation with arrow keys
     document.addEventListener('keydown', (e) => {
-      // Map arrow keys to movement keys
+      // If not in game, handle menu navigation
+      if (!this.gameState || !this.myPlayer) {
+        if (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+          e.preventDefault();
+          this.navigateMenu(e.key);
+          audioManager.playMenuSound('navigate');
+          return;
+        }
+
+        if (e.key === 'Enter' && document.activeElement.tagName === 'BUTTON') {
+          e.preventDefault();
+          audioManager.playMenuSound('enter');
+          document.activeElement.click();
+          return;
+        }
+      }
+
+      // Game controls
       const arrowKeyMap = {
         'ArrowLeft': 'a',
         'ArrowRight': 'd',
@@ -319,10 +337,9 @@ class Game {
 
       let key = e.key.toLowerCase();
 
-      // Convert arrow keys to movement keys
-      if (arrowKeyMap[e.key]) {
+      // Convert arrow keys to movement keys in game
+      if (arrowKeyMap[e.key] && this.gameState && this.myPlayer) {
         key = arrowKeyMap[e.key];
-        audioManager.playMenuSound('navigate');
       }
 
       this.keys[key] = true;
@@ -342,11 +359,6 @@ class Game {
         if (e.key === 'Shift' && !this.isDodging && Date.now() - this.dodgeCooldown > 3000) {
           this.dodge();
         }
-      }
-
-      // Play enter sound when pressing Enter on focused button
-      if (e.key === 'Enter' && document.activeElement.tagName === 'BUTTON') {
-        audioManager.playMenuSound('enter');
       }
     });
 
@@ -368,6 +380,36 @@ class Game {
 
       this.keys[key] = false;
     });
+  }
+
+  navigateMenu(direction) {
+    const focusableElements = Array.from(document.querySelectorAll(
+      'button:not([disabled]), .hero-card, a[href]'
+    )).filter(el => {
+      const rect = el.getBoundingClientRect();
+      return rect.width > 0 && rect.height > 0 &&
+             window.getComputedStyle(el).visibility !== 'hidden' &&
+             window.getComputedStyle(el).display !== 'none';
+    });
+
+    if (focusableElements.length === 0) return;
+
+    let currentIndex = focusableElements.indexOf(document.activeElement);
+
+    if (currentIndex === -1) {
+      focusableElements[0].focus();
+      return;
+    }
+
+    let nextIndex = currentIndex;
+
+    if (direction === 'ArrowDown' || direction === 'ArrowRight') {
+      nextIndex = (currentIndex + 1) % focusableElements.length;
+    } else if (direction === 'ArrowUp' || direction === 'ArrowLeft') {
+      nextIndex = (currentIndex - 1 + focusableElements.length) % focusableElements.length;
+    }
+
+    focusableElements[nextIndex].focus();
   }
 
   addMenuSoundEffects() {
