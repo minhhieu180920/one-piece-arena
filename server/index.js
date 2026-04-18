@@ -183,6 +183,29 @@ io.on('connection', (socket) => {
     });
   });
 
+  socket.on('leaveRoom', (data) => {
+    const player = players.get(socket.id);
+    if (!player || !player.room) return;
+
+    const room = rooms.get(player.room);
+    if (room) {
+      room.players = room.players.filter(pid => pid !== socket.id);
+      socket.leave(player.room);
+
+      if (room.players.length === 0) {
+        rooms.delete(player.room);
+      } else {
+        io.to(player.room).emit('playerLeft', { playerId: socket.id });
+      }
+
+      io.emit('roomListUpdate', Array.from(rooms.values()).filter(r => r.status === 'waiting'));
+    }
+
+    player.room = null;
+    player.hero = null;
+    player.ready = false;
+  });
+
   // Disconnect
   socket.on('disconnect', () => {
     console.log(`Player disconnected: ${socket.id}`);

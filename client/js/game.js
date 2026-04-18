@@ -81,12 +81,6 @@ class Game {
         this.selectedHero = data.heroId;
         document.getElementById('ready-btn').disabled = false;
 
-        // Highlight selected hero
-        document.querySelectorAll('.hero-card').forEach(card => {
-          card.classList.remove('selected');
-        });
-        event.target.closest('.hero-card').classList.add('selected');
-
         // Preload hero sounds
         audioManager.preloadHeroSounds(data.heroId);
         audioManager.playVoice(data.heroId, 0); // Play select voice
@@ -228,7 +222,6 @@ class Game {
       const div = document.createElement('div');
       div.className = 'player-item';
 
-      const player = this.currentRoom.players.find(p => p === pid);
       const isMe = pid === this.playerId;
       const isBot = pid.startsWith('bot_');
       const playerName = isMe ? 'Bạn' : (isBot ? '🤖 AI Bot' : 'Player');
@@ -267,14 +260,22 @@ class Game {
   }
 
   leaveRoom() {
+    if (this.currentRoom) {
+      this.socket.emit('leaveRoom', { roomId: this.currentRoom.id });
+    }
     this.currentRoom = null;
     this.selectedHero = null;
+    this.gameState = null;
     this.showScreen('lobby-screen');
-    this.socket.disconnect();
-    this.socket.connect();
   }
 
   selectHero(heroId) {
+    // Highlight selected hero
+    document.querySelectorAll('.hero-card').forEach(card => {
+      card.classList.remove('selected');
+    });
+    event.target.closest('.hero-card').classList.add('selected');
+
     this.socket.emit('selectHero', { heroId });
   }
 
