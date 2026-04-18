@@ -215,7 +215,14 @@ class AudioManager {
     await Promise.all(promises);
   }
 
-  playMenuSound(type) {
+  async playMenuSound(type) {
+    // Auto-init audio on first interaction
+    if (!this.initialized) {
+      await this.init();
+      await this.preloadMenuSounds();
+      await this.preloadGameSounds();
+    }
+
     const sounds = {
       hover: 'menu_0',
       click: 'menu_1',
