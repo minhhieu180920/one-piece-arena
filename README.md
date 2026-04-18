@@ -6,8 +6,10 @@ Game đối kháng One Piece với âm thanh từ Burning Blood.
 
 - ⚔️ 2 chế độ: 1v1 và 2v2
 - 👥 Hỗ trợ tối đa 7 người online
+- 🤖 **AI Bot với 3 độ khó: Easy, Medium, Hard**
 - 🎮 3 Heroes: Luffy Gear 5, Zoro Timeskip, Sanji Raid Suit
 - 🔊 Âm thanh đầy đủ cho skills và voice lines
+- 🗺️ Bản đồ 2D với di chuyển, nhảy, né
 - 📱 Chơi được trên cả PC và mobile
 
 ## Cài đặt
