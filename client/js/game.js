@@ -1,4 +1,154 @@
-// Game Client
+// Touch Controls Manager for Mobile
+class TouchControls {
+  constructor(game) {
+    this.game = game;
+    this.touchStartX = 0;
+    this.touchStartY = 0;
+    this.touchEndX = 0;
+    this.touchEndY = 0;
+    this.minSwipeDistance = 50;
+    this.isEnabled = false;
+  }
+
+  init() {
+    if (!this.isMobile()) return;
+
+    this.isEnabled = true;
+
+    // Lock to landscape
+    if (screen.orientation && screen.orientation.lock) {
+      screen.orientation.lock('landscape').catch(() => {
+        console.log('Orientation lock not supported');
+      });
+    }
+
+    // Setup touch areas
+    this.setupTouchAreas();
+
+    tts.speak('Chế độ di động đã kích hoạt. Màn hình bên trái để di chuyển, bên phải để dùng kỹ năng');
+  }
+
+  isMobile() {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  }
+
+  setupTouchAreas() {
+    const canvas = this.game.canvas;
+
+    // Left side - movement
+    canvas.addEventListener('touchstart', (e) => this.handleTouchStart(e), { passive: false });
+    canvas.addEventListener('touchmove', (e) => this.handleTouchMove(e), { passive: false });
+    canvas.addEventListener('touchend', (e) => this.handleTouchEnd(e), { passive: false });
+  }
+
+  handleTouchStart(e) {
+    e.preventDefault();
+    const touch = e.touches[0];
+    this.touchStartX = touch.clientX;
+    this.touchStartY = touch.clientY;
+  }
+
+  handleTouchMove(e) {
+    e.preventDefault();
+    const touch = e.touches[0];
+    this.touchEndX = touch.clientX;
+    this.touchEndY = touch.clientY;
+  }
+
+  handleTouchEnd(e) {
+    e.preventDefault();
+
+    const deltaX = this.touchEndX - this.touchStartX;
+    const deltaY = this.touchEndY - this.touchStartY;
+    const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+
+    if (distance < this.minSwipeDistance) {
+      // Tap - check if on skill buttons
+      this.handleTap(this.touchStartX, this.touchStartY);
+      return;
+    }
+
+    // Swipe gestures
+    const screenWidth = window.innerWidth;
+
+    if (this.touchStartX < screenWidth / 2) {
+      // Left side - movement
+      this.handleMovementSwipe(deltaX, deltaY);
+    } else {
+      // Right side - skills
+      this.handleSkillSwipe(deltaX, deltaY);
+    }
+  }
+
+  handleMovementSwipe(deltaX, deltaY) {
+    if (Math.abs(deltaY) > Math.abs(deltaX)) {
+      // Vertical swipe
+      if (deltaY < 0) {
+        // Swipe up - jump
+        this.game.jump();
+        tts.speak('Nhảy');
+      }
+    } else {
+      // Horizontal swipe
+      if (deltaX < 0) {
+        // Swipe left
+        this.game.moveLeft();
+        tts.speak('Di chuyển trái');
+      } else {
+        // Swipe right
+        this.game.moveRight();
+        tts.speak('Di chuyển phải');
+      }
+    }
+  }
+
+  handleSkillSwipe(deltaX, deltaY) {
+    // Determine skill based on swipe direction
+    let skillIndex = -1;
+
+    if (Math.abs(deltaY) > Math.abs(deltaX)) {
+      // Vertical swipe
+      if (deltaY < 0) {
+        skillIndex = 0; // Swipe up - Skill 1
+      } else {
+        skillIndex = 1; // Swipe down - Skill 2
+      }
+    } else {
+      // Horizontal swipe
+      if (deltaX < 0) {
+        skillIndex = 2; // Swipe left - Skill 3
+      } else {
+        skillIndex = 3; // Swipe right - Skill 4
+      }
+    }
+
+    if (skillIndex >= 0) {
+      this.game.useSkill(skillIndex);
+    }
+  }
+
+  handleTap(x, y) {
+    // Check if tap is on skill button area
+    const screenWidth = window.innerWidth;
+    const screenHeight = window.innerHeight;
+
+    if (x > screenWidth / 2 && y > screenHeight / 2) {
+      // Bottom right - skill area
+      const relX = (x - screenWidth / 2) / (screenWidth / 2);
+      const relY = (y - screenHeight / 2) / (screenHeight / 2);
+
+      let skillIndex = -1;
+      if (relX < 0.5 && relY < 0.5) skillIndex = 0;
+      else if (relX >= 0.5 && relY < 0.5) skillIndex = 1;
+      else if (relX < 0.5 && relY >= 0.5) skillIndex = 2;
+      else skillIndex = 3;
+
+      this.game.useSkill(skillIndex);
+    }
+  }
+}
+
+// Game Client with TTS and Touch Controls
 class Game {
   constructor() {
     this.socket = null;
@@ -26,6 +176,9 @@ class Game {
     this.gravity = 0.8;
     this.jumpPower = -15;
     this.moveSpeed = 5;
+
+    // Touch controls
+    this.touchControls = new TouchControls(this);
   }
 
   init() {
@@ -38,15 +191,20 @@ class Game {
     this.setupSocketListeners();
     this.setupKeyboardControls();
     this.addMenuSoundEffects();
+    this.touchControls.init();
 
-    // Initialize audio on first user interaction
+    // Initialize audio and TTS on first user interaction
     document.addEventListener('click', async () => {
       if (!audioManager.initialized) {
         await audioManager.init();
         await audioManager.preloadMenuSounds();
         await audioManager.preloadGameSounds();
+        tts.speak('Hệ thống âm thanh đã sẵn sàng');
       }
     }, { once: true });
+
+    // Welcome message
+    tts.speak('Chào mừng đến với One Piece Arena. Game đối kháng cho người khiếm thị');
   }
 
   setupSocketListeners() {
@@ -54,6 +212,7 @@ class Game {
       this.playerId = data.playerId;
       this.updateOnlineCount(data.onlinePlayers);
       this.updateRoomList(data.availableRooms);
+      tts.speak(`Đã kết nối. ${data.onlinePlayers} người đang online`);
     });
 
     this.socket.on('playerCount', (count) => {
@@ -65,6 +224,7 @@ class Game {
       this.showScreen('room-screen');
       document.getElementById('room-mode').textContent = data.room.mode.toUpperCase();
       this.updatePlayersInRoom();
+      tts.speak(`Đã tạo phòng ${data.room.mode}. Hãy chọn hero`);
     });
 
     this.socket.on('roomListUpdate', (rooms) => {
@@ -74,6 +234,7 @@ class Game {
     this.socket.on('playerJoined', (data) => {
       this.currentRoom = data.room;
       this.updatePlayersInRoom();
+      tts.speak('Có người chơi mới vào phòng');
     });
 
     this.socket.on('heroSelected', (data) => {
@@ -83,18 +244,27 @@ class Game {
 
         // Preload hero sounds
         audioManager.preloadHeroSounds(data.heroId);
-        audioManager.playVoice(data.heroId, 0); // Play select voice
+        audioManager.playVoice(data.heroId, 0);
+
+        const heroNames = {
+          luffy: 'Luffy Gear 5',
+          zoro: 'Zoro Timeskip',
+          sanji: 'Sanji Raid Suit'
+        };
+        tts.speak(`Đã chọn ${heroNames[data.heroId]}. Nhấn sẵn sàng để bắt đầu`);
       }
       this.updatePlayersInRoom();
     });
 
     this.socket.on('playerReadyUpdate', () => {
       this.updatePlayersInRoom();
+      tts.speak('Người chơi đã sẵn sàng');
     });
 
     this.socket.on('gameStart', (gameState) => {
       this.gameState = gameState;
       this.startGame();
+      tts.speak('Trận đấu bắt đầu!', true);
     });
 
     this.socket.on('skillUsed', (data) => {
@@ -106,7 +276,6 @@ class Game {
     });
 
     this.socket.on('playerMoved', (data) => {
-      // Update enemy position
       const enemy = this.enemies.find(e => e.id === data.playerId);
       if (enemy) {
         enemy.position = { x: data.x, y: data.y };
@@ -114,19 +283,21 @@ class Game {
     });
 
     this.socket.on('playerDodged', (data) => {
-      // Visual feedback for dodge
       if (data.playerId !== this.playerId) {
         audioManager.playDodge();
+        tts.speak('Đối thủ né tránh');
       }
     });
 
     this.socket.on('playerLeft', () => {
       if (this.currentRoom) {
         this.updatePlayersInRoom();
+        tts.speak('Người chơi đã rời phòng');
       }
     });
 
     this.socket.on('error', (data) => {
+      tts.speak(data.message, true);
       alert(data.message);
     });
   }
@@ -136,7 +307,6 @@ class Game {
       this.keys[e.key.toLowerCase()] = true;
 
       if (this.gameState && this.myPlayer) {
-        // Skills
         const keyMap = { 'q': 0, 'w': 1, 'e': 2, 'r': 3 };
         const skillIndex = keyMap[e.key.toLowerCase()];
 
@@ -144,12 +314,10 @@ class Game {
           this.useSkill(skillIndex);
         }
 
-        // Jump
         if (e.key === ' ' && !this.isJumping) {
           this.jump();
         }
 
-        // Dodge
         if (e.key === 'Shift' && !this.isDodging && Date.now() - this.dodgeCooldown > 3000) {
           this.dodge();
         }
@@ -162,7 +330,6 @@ class Game {
   }
 
   addMenuSoundEffects() {
-    // Add hover sounds to buttons
     document.querySelectorAll('.btn').forEach(btn => {
       btn.addEventListener('mouseenter', () => {
         audioManager.playMenuSound('hover');
@@ -171,12 +338,21 @@ class Game {
       btn.addEventListener('click', () => {
         audioManager.playMenuSound('click');
       });
+
+      btn.addEventListener('focus', () => {
+        const text = btn.textContent || btn.innerText;
+        tts.speak(text);
+      });
     });
 
-    // Add hover sounds to hero cards
     document.querySelectorAll('.hero-card').forEach(card => {
       card.addEventListener('mouseenter', () => {
         audioManager.playMenuSound('hover');
+      });
+
+      card.addEventListener('focus', () => {
+        const heroName = card.querySelector('.hero-name').textContent;
+        tts.speak(heroName);
       });
     });
   }
@@ -196,8 +372,11 @@ class Game {
 
     if (rooms.length === 0) {
       container.innerHTML = '<p style="text-align:center;opacity:0.7;">Chưa có phòng nào</p>';
+      tts.speak('Chưa có phòng nào. Hãy tạo phòng mới');
       return;
     }
+
+    tts.speak(`Có ${rooms.length} phòng đang chờ`);
 
     rooms.forEach(room => {
       const div = document.createElement('div');
@@ -224,7 +403,7 @@ class Game {
 
       const isMe = pid === this.playerId;
       const isBot = pid.startsWith('bot_');
-      const playerName = isMe ? 'Bạn' : (isBot ? '🤖 AI Bot' : 'Player');
+      const playerName = isMe ? 'Bạn' : (isBot ? 'AI Bot' : 'Đối thủ');
 
       div.innerHTML = `<span>${playerName}</span><span>Đang chọn hero...</span>`;
       container.appendChild(div);
@@ -233,12 +412,14 @@ class Game {
 
   createRoom(mode, withAI = false, aiDifficulty = 'medium') {
     this.socket.emit('createRoom', { mode, withAI, aiDifficulty });
+    tts.speak(`Đang tạo phòng ${mode}`);
   }
 
   showAIDifficulty(mode) {
     this.pendingAIMode = mode;
     document.getElementById('ai-modal').style.display = 'block';
     document.getElementById('ai-overlay').style.display = 'block';
+    tts.speak('Chọn độ khó AI: Dễ, Trung bình, hoặc Khó');
   }
 
   closeAIModal() {
@@ -251,12 +432,15 @@ class Game {
     if (this.pendingAIMode) {
       this.createRoom(this.pendingAIMode, true, difficulty);
       this.closeAIModal();
+      const diffNames = { easy: 'Dễ', medium: 'Trung bình', hard: 'Khó' };
+      tts.speak(`Đã chọn độ khó ${diffNames[difficulty]}`);
     }
   }
 
   joinRoom(roomId) {
     this.socket.emit('joinRoom', { roomId });
     this.showScreen('room-screen');
+    tts.speak('Đang vào phòng');
   }
 
   leaveRoom() {
@@ -267,10 +451,10 @@ class Game {
     this.selectedHero = null;
     this.gameState = null;
     this.showScreen('lobby-screen');
+    tts.speak('Đã rời phòng');
   }
 
   selectHero(heroId) {
-    // Highlight selected hero
     document.querySelectorAll('.hero-card').forEach(card => {
       card.classList.remove('selected');
     });
@@ -280,24 +464,28 @@ class Game {
   }
 
   playerReady() {
-    if (!this.selectedHero) return;
+    if (!this.selectedHero) {
+      tts.speak('Hãy chọn hero trước', true);
+      return;
+    }
     this.socket.emit('playerReady');
     document.getElementById('ready-btn').disabled = true;
     document.getElementById('ready-btn').textContent = 'Đang chờ...';
+    tts.speak('Đã sẵn sàng. Đang chờ đối thủ');
   }
 
   startGame() {
     this.showScreen('game-screen');
 
-    // Find my player
     this.myPlayer = this.gameState.players.find(p => p.id === this.playerId);
     this.enemies = this.gameState.players.filter(p => p.id !== this.playerId);
 
-    // Update UI
     this.updateGameInfo();
     this.updateSkillButtons();
     this.render();
     this.gameLoop();
+
+    tts.speak(`Máu của bạn: ${this.myPlayer.hp}. Máu đối thủ: ${this.enemies[0].hp}`, true);
   }
 
   updateGameInfo() {
@@ -309,7 +497,7 @@ class Game {
       div.className = 'player-status';
       const isMe = player.id === this.playerId;
       const isAI = player.isAI || player.id.startsWith('bot_');
-      const label = isMe ? 'BẠN' : (isAI ? '🤖 AI BOT' : 'ĐỐI THỦ');
+      const label = isMe ? 'BẠN' : (isAI ? 'AI BOT' : 'ĐỐI THỦ');
 
       div.innerHTML = `
         <div><strong>${label}</strong></div>
@@ -328,6 +516,10 @@ class Game {
     buttons.forEach((btn, idx) => {
       const skill = this.myPlayer.skills[idx];
       btn.querySelector('.skill-name').textContent = skill.name;
+
+      btn.addEventListener('focus', () => {
+        tts.speak(`Kỹ năng ${idx + 1}: ${skill.name}. Sát thương ${skill.damage}`);
+      });
     });
   }
 
@@ -337,7 +529,10 @@ class Game {
     const now = Date.now();
     const skill = this.myPlayer.skills[skillIndex];
 
-    if (now - this.skillCooldowns[skillIndex] < skill.cooldown) return;
+    if (now - this.skillCooldowns[skillIndex] < skill.cooldown) {
+      tts.speak('Kỹ năng đang hồi', true);
+      return;
+    }
 
     this.skillCooldowns[skillIndex] = now;
     this.socket.emit('useSkill', {
@@ -345,10 +540,9 @@ class Game {
       targetId: this.enemies[0].id
     });
 
-    // Play skill sound
     audioManager.playSkill(this.myPlayer.heroId, skillIndex);
+    tts.speak(`Dùng ${skill.name}. Sát thương ${skill.damage}`);
 
-    // Start cooldown UI
     this.startCooldownUI(skillIndex, skill.cooldown);
   }
 
@@ -366,6 +560,7 @@ class Game {
         clearInterval(interval);
         cooldownSpan.textContent = '';
         btn.disabled = false;
+        tts.speak(`Kỹ năng ${skillIndex + 1} đã sẵn sàng`);
       } else {
         cooldownSpan.textContent = remaining;
       }
@@ -385,7 +580,6 @@ class Game {
 
     target.hp = Math.max(0, target.hp - damage);
 
-    // Update HP bar
     const hpFill = document.getElementById(`hp-${targetId}`);
     const hpText = document.getElementById(`hp-text-${targetId}`);
 
@@ -394,12 +588,13 @@ class Game {
       hpText.textContent = target.hp;
     }
 
-    // Play hurt sound for target
     if (targetId === this.playerId) {
-      audioManager.playVoice(target.heroId, 5); // Hurt voice
+      audioManager.playVoice(target.heroId, 5);
+      tts.speak(`Bị tấn công! Mất ${damage} máu. Còn ${target.hp} máu`, true);
+    } else {
+      tts.speak(`Gây ${damage} sát thương. Đối thủ còn ${target.hp} máu`);
     }
 
-    // Check game over
     if (target.hp <= 0) {
       this.gameOver(attacker.id === this.playerId);
     }
@@ -412,10 +607,12 @@ class Game {
   gameOver(won) {
     setTimeout(() => {
       if (won) {
-        audioManager.playVoice(this.myPlayer.heroId, 6); // Victory
+        audioManager.playVoice(this.myPlayer.heroId, 6);
+        tts.speak('Chiến thắng! Bạn đã thắng trận đấu', true);
         alert('🎉 Bạn thắng!');
       } else {
-        audioManager.playVoice(this.myPlayer.heroId, 7); // Defeat
+        audioManager.playVoice(this.myPlayer.heroId, 7);
+        tts.speak('Thất bại! Bạn đã thua trận đấu', true);
         alert('💀 Bạn thua!');
       }
 
@@ -435,8 +632,8 @@ class Game {
     this.isDodging = true;
     this.dodgeCooldown = Date.now();
     audioManager.playDodge();
+    tts.speak('Né tránh');
 
-    // Dodge animation
     const dodgeDir = this.keys['a'] || this.keys['arrowleft'] ? -1 : 1;
     this.playerPos.x += dodgeDir * 100;
 
@@ -445,10 +642,19 @@ class Game {
     }, 300);
   }
 
+  moveLeft() {
+    this.keys['a'] = true;
+    setTimeout(() => { this.keys['a'] = false; }, 500);
+  }
+
+  moveRight() {
+    this.keys['d'] = true;
+    setTimeout(() => { this.keys['d'] = false; }, 500);
+  }
+
   updateMovement() {
     if (!this.gameState || this.isDodging) return;
 
-    // Horizontal movement
     if (this.keys['a'] || this.keys['arrowleft']) {
       this.playerPos.x -= this.moveSpeed;
       this.footstepTimer++;
@@ -458,27 +664,22 @@ class Game {
       this.footstepTimer++;
     }
 
-    // Play footstep sound
     if (this.footstepTimer > 15 && this.playerPos.y >= this.ground - 50) {
       audioManager.playFootstep();
       this.footstepTimer = 0;
     }
 
-    // Gravity
     this.playerVel.y += this.gravity;
     this.playerPos.y += this.playerVel.y;
 
-    // Ground collision
     if (this.playerPos.y >= this.ground - 50) {
       this.playerPos.y = this.ground - 50;
       this.playerVel.y = 0;
       this.isJumping = false;
     }
 
-    // Boundaries
     this.playerPos.x = Math.max(0, Math.min(750, this.playerPos.x));
 
-    // Sync position to server
     this.socket.emit('playerMove', {
       x: this.playerPos.x,
       y: this.playerPos.y
@@ -488,15 +689,12 @@ class Game {
   render() {
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-    // Draw background
     this.ctx.fillStyle = '#1a1a2e';
     this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
-    // Draw ground
     this.ctx.fillStyle = '#16213e';
     this.ctx.fillRect(0, this.ground, this.canvas.width, 100);
 
-    // Draw grid lines
     this.ctx.strokeStyle = 'rgba(255,255,255,0.1)';
     for (let i = 0; i < this.canvas.width; i += 50) {
       this.ctx.beginPath();
@@ -505,7 +703,6 @@ class Game {
       this.ctx.stroke();
     }
 
-    // Draw my player
     if (this.myPlayer) {
       this.ctx.fillStyle = this.isDodging ? '#ffd700' : '#28a745';
       this.ctx.fillRect(this.playerPos.x, this.playerPos.y, 50, 50);
@@ -514,7 +711,6 @@ class Game {
       this.ctx.fillText('YOU', this.playerPos.x + 5, this.playerPos.y - 5);
     }
 
-    // Draw enemies
     this.enemies.forEach((enemy, idx) => {
       const enemyX = enemy.position ? enemy.position.x : 600;
       const enemyY = enemy.position ? enemy.position.y : this.ground - 50;

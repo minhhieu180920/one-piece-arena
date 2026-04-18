@@ -3,25 +3,27 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>One Piece Arena</title>
+  <title>One Piece Arena - Game âm thanh cho người khiếm thị</title>
+  <meta name="description" content="Game đối kháng One Piece với hỗ trợ đầy đủ cho người khiếm thị">
   <link rel="stylesheet" href="css/style.css">
 </head>
-<body>
+<body role="application" aria-label="One Piece Arena Game">
   <div id="app">
     <!-- Lobby Screen -->
-    <div id="lobby-screen" class="screen active">
+    <div id="lobby-screen" class="screen active" role="main" aria-label="Màn hình sảnh chờ">
       <h1>⚔️ ONE PIECE ARENA</h1>
-      <div class="player-count">Online: <span id="online-count">0</span>/7</div>
+      <p style="text-align: center; margin-bottom: 20px;">Game âm thanh cho người khiếm thị</p>
+      <div class="player-count" aria-live="polite">Online: <span id="online-count">0</span>/7</div>
 
-      <div class="lobby-actions">
-        <button class="btn btn-primary" onclick="game.createRoom('1v1', false)">Tạo phòng 1v1</button>
-        <button class="btn btn-primary" onclick="game.createRoom('2v2', false)">Tạo phòng 2v2</button>
+      <div class="lobby-actions" role="group" aria-label="Tạo phòng chơi">
+        <button class="btn btn-primary" onclick="game.createRoom('1v1', false)" aria-label="Tạo phòng 1 đối 1">Tạo phòng 1v1</button>
+        <button class="btn btn-primary" onclick="game.createRoom('2v2', false)" aria-label="Tạo phòng 2 đối 2">Tạo phòng 2v2</button>
       </div>
 
-      <div class="lobby-actions" style="margin-top: 20px;">
+      <div class="lobby-actions" style="margin-top: 20px;" role="group" aria-label="Chơi với AI">
         <h3 style="width: 100%; text-align: center; margin-bottom: 15px;">🤖 Chơi với AI</h3>
-        <button class="btn btn-primary" onclick="game.showAIDifficulty('1v1')">1v1 vs AI</button>
-        <button class="btn btn-primary" onclick="game.showAIDifficulty('2v2')">2v2 vs AI</button>
+        <button class="btn btn-primary" onclick="game.showAIDifficulty('1v1')" aria-label="Chơi 1 đối 1 với AI">1v1 vs AI</button>
+        <button class="btn btn-primary" onclick="game.showAIDifficulty('2v2')" aria-label="Chơi 2 đối 2 với AI">2v2 vs AI</button>
       </div>
 
       <!-- AI Difficulty Modal -->
@@ -36,70 +38,77 @@
       </div>
       <div id="ai-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 999;" onclick="game.closeAIModal()"></div>
 
-      <div class="room-list">
+      <div class="room-list" role="region" aria-label="Danh sách phòng">
         <h3>Phòng đang chờ</h3>
-        <div id="room-list-container"></div>
+        <div id="room-list-container" aria-live="polite"></div>
       </div>
     </div>
 
     <!-- Room Screen -->
-    <div id="room-screen" class="screen">
+    <div id="room-screen" class="screen" role="main" aria-label="Màn hình phòng chơi">
       <h2>Phòng: <span id="room-mode"></span></h2>
-      <button class="btn btn-back" onclick="game.leaveRoom()">← Rời phòng</button>
+      <button class="btn btn-back" onclick="game.leaveRoom()" aria-label="Rời khỏi phòng">← Rời phòng</button>
 
-      <div class="hero-selection">
+      <div class="hero-selection" role="group" aria-label="Chọn nhân vật">
         <h3>Chọn Hero</h3>
         <div class="hero-grid">
-          <div class="hero-card" onclick="game.selectHero('luffy')">
+          <button class="hero-card" onclick="game.selectHero('luffy')" tabindex="0" aria-label="Chọn Luffy Gear 5, máu 1000">
             <div class="hero-name">Luffy Gear 5</div>
             <div class="hero-stats">HP: 1000</div>
-          </div>
-          <div class="hero-card" onclick="game.selectHero('zoro')">
+          </button>
+          <button class="hero-card" onclick="game.selectHero('zoro')" tabindex="0" aria-label="Chọn Zoro Timeskip, máu 1100">
             <div class="hero-name">Zoro Timeskip</div>
             <div class="hero-stats">HP: 1100</div>
-          </div>
-          <div class="hero-card" onclick="game.selectHero('sanji')">
+          </button>
+          <button class="hero-card" onclick="game.selectHero('sanji')" tabindex="0" aria-label="Chọn Sanji Raid Suit, máu 950">
             <div class="hero-name">Sanji Raid Suit</div>
             <div class="hero-stats">HP: 950</div>
-          </div>
+          </button>
         </div>
       </div>
 
-      <div class="players-in-room">
+      <div class="players-in-room" role="region" aria-label="Người chơi trong phòng">
         <h3>Người chơi</h3>
-        <div id="players-container"></div>
+        <div id="players-container" aria-live="polite"></div>
       </div>
 
-      <button id="ready-btn" class="btn btn-success" onclick="game.playerReady()" disabled>Sẵn sàng</button>
+      <button id="ready-btn" class="btn btn-success" onclick="game.playerReady()" disabled aria-label="Sẵn sàng chiến đấu">Sẵn sàng</button>
     </div>
 
     <!-- Game Screen -->
-    <div id="game-screen" class="screen">
+    <div id="game-screen" class="screen" role="main" aria-label="Màn hình trận đấu">
       <div class="game-ui">
-        <div id="game-info"></div>
-        <canvas id="game-canvas"></canvas>
+        <div id="game-info" aria-live="polite" aria-atomic="true"></div>
+        <canvas id="game-canvas" aria-label="Khu vực trận đấu"></canvas>
 
-        <div class="skills-bar">
-          <button class="skill-btn" data-skill="0" onclick="game.useSkill(0)">
+        <div class="skills-bar" role="group" aria-label="Kỹ năng chiến đấu">
+          <button class="skill-btn" data-skill="0" onclick="game.useSkill(0)" tabindex="0" aria-label="Kỹ năng 1, phím Q">
             <span class="skill-key">Q</span>
             <span class="skill-name">Skill 1</span>
-            <span class="cooldown"></span>
+            <span class="cooldown" aria-live="polite"></span>
           </button>
-          <button class="skill-btn" data-skill="1" onclick="game.useSkill(1)">
+          <button class="skill-btn" data-skill="1" onclick="game.useSkill(1)" tabindex="0" aria-label="Kỹ năng 2, phím W">
             <span class="skill-key">W</span>
             <span class="skill-name">Skill 2</span>
-            <span class="cooldown"></span>
+            <span class="cooldown" aria-live="polite"></span>
           </button>
-          <button class="skill-btn" data-skill="2" onclick="game.useSkill(2)">
+          <button class="skill-btn" data-skill="2" onclick="game.useSkill(2)" tabindex="0" aria-label="Kỹ năng 3, phím E">
             <span class="skill-key">E</span>
             <span class="skill-name">Skill 3</span>
-            <span class="cooldown"></span>
+            <span class="cooldown" aria-live="polite"></span>
           </button>
-          <button class="skill-btn" data-skill="3" onclick="game.useSkill(3)">
+          <button class="skill-btn" data-skill="3" onclick="game.useSkill(3)" tabindex="0" aria-label="Kỹ năng 4, phím R">
             <span class="skill-key">R</span>
             <span class="skill-name">Skill 4</span>
-            <span class="cooldown"></span>
+            <span class="cooldown" aria-live="polite"></span>
           </button>
+        </div>
+
+        <!-- Mobile Touch Instructions -->
+        <div id="mobile-instructions" style="display: none; position: fixed; bottom: 10px; left: 10px; background: rgba(0,0,0,0.8); padding: 10px; border-radius: 5px; font-size: 12px;">
+          <p>📱 Điều khiển di động:</p>
+          <p>Bên trái: Vút để di chuyển, vút lên để nhảy</p>
+          <p>Bên phải: Vút để dùng kỹ năng</p>
         </div>
       </div>
     </div>

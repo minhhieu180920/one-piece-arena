@@ -1,3 +1,83 @@
+// TTS Manager for Accessibility
+class TTSManager {
+  constructor() {
+    this.synth = window.speechSynthesis;
+    this.voice = null;
+    this.enabled = true;
+    this.queue = [];
+    this.speaking = false;
+    this.init();
+  }
+
+  init() {
+    // Wait for voices to load
+    if (this.synth.getVoices().length > 0) {
+      this.selectVoice();
+    } else {
+      this.synth.addEventListener('voiceschanged', () => {
+        this.selectVoice();
+      });
+    }
+  }
+
+  selectVoice() {
+    const voices = this.synth.getVoices();
+    // Prefer Vietnamese voice, fallback to English
+    this.voice = voices.find(v => v.lang.startsWith('vi')) ||
+                 voices.find(v => v.lang.startsWith('en')) ||
+                 voices[0];
+  }
+
+  speak(text, priority = false) {
+    if (!this.enabled) return;
+
+    if (priority) {
+      this.synth.cancel();
+      this.queue = [];
+    }
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.voice = this.voice;
+    utterance.rate = 1.0;
+    utterance.pitch = 1.0;
+    utterance.volume = 1.0;
+
+    utterance.onend = () => {
+      this.speaking = false;
+      this.processQueue();
+    };
+
+    if (this.speaking) {
+      this.queue.push(utterance);
+    } else {
+      this.speaking = true;
+      this.synth.speak(utterance);
+    }
+  }
+
+  processQueue() {
+    if (this.queue.length > 0) {
+      const next = this.queue.shift();
+      this.speaking = true;
+      this.synth.speak(next);
+    }
+  }
+
+  stop() {
+    this.synth.cancel();
+    this.queue = [];
+    this.speaking = false;
+  }
+
+  toggle() {
+    this.enabled = !this.enabled;
+    if (!this.enabled) {
+      this.stop();
+    }
+    return this.enabled;
+  }
+}
+
 // Audio Manager
 class AudioManager {
   constructor() {
@@ -163,3 +243,4 @@ class AudioManager {
 }
 
 const audioManager = new AudioManager();
+const tts = new TTSManager();
