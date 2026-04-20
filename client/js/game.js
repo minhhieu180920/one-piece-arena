@@ -188,7 +188,12 @@ class Game {
   }
 
   init() {
-    this.socket = io();
+    // Connect to Railway server for multiplayer
+    const serverUrl = window.location.hostname === 'localhost'
+      ? 'http://localhost:3000'
+      : 'https://web-production-42989.up.railway.app';
+
+    this.socket = io(serverUrl);
     this.canvas = document.getElementById('game-canvas');
     this.ctx = this.canvas.getContext('2d');
     this.canvas.width = 800;
