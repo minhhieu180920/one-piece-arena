@@ -187,13 +187,9 @@ class AudioManager {
 
   async preloadMenuSounds() {
     const menuSounds = [
-      'sfx/snd_00272.wav', // hover
-      'sfx/snd_00273.wav', // click
-      'sfx/snd_00248.wav', // select
-      'sfx/snd_00249.wav', // back
-      'sfx/snd_00294.wav', // navigate (arrow keys)
-      'sfx/snd_00277.wav', // enter/confirm
-      'sfx/snd_00278.wav'  // lobby enter
+      'menu/move.wav',     // navigate/move
+      'menu/select.wav',   // enter/confirm
+      'menu/back.wav'      // back/cancel
     ];
 
     const promises = menuSounds.map((path, idx) =>
@@ -205,10 +201,11 @@ class AudioManager {
 
   async preloadGameSounds() {
     const gameSounds = [
-      'sfx/snd_00000.wav', // jump
-      'sfx/snd_00001.wav', // dodge
-      'sfx/snd_00002.wav', // footstep
-      'sfx/snd_00003.wav'  // hit
+      'common/jump.wav',   // jump
+      'common/walk.wav',   // walk/footstep
+      'common/hit.wav',    // hit/damage
+      'common/miss.wav',   // miss/dodge
+      'common/heal.wav'    // heal/recover
     ];
 
     const promises = gameSounds.map((path, idx) =>
@@ -229,11 +226,11 @@ class AudioManager {
     const sounds = {
       hover: 'menu_0',
       click: 'menu_1',
-      select: 'menu_2',
-      back: 'menu_3',
-      navigate: 'menu_4',
-      enter: 'menu_5',
-      lobby: 'menu_6'
+      select: 'menu_1',
+      back: 'menu_2',
+      navigate: 'menu_0',
+      enter: 'menu_1',
+      lobby: 'menu_1'
     };
     this.play(sounds[type] || 'menu_0', 0.5);
   }
@@ -242,16 +239,20 @@ class AudioManager {
     this.play('game_0', 0.6);
   }
 
-  playDodge() {
-    this.play('game_1', 0.6);
-  }
-
-  playFootstep() {
-    this.play('game_2', 0.3);
+  playWalk() {
+    this.play('game_1', 0.3);
   }
 
   playHit() {
-    this.play('game_3', 0.7);
+    this.play('game_2', 0.7);
+  }
+
+  playMiss() {
+    this.play('game_3', 0.6);
+  }
+
+  playHeal() {
+    this.play('game_4', 0.7);
   }
 }
 
