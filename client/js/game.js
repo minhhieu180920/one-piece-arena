@@ -63,7 +63,7 @@ class TouchControls {
     const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
 
     if (distance < this.minSwipeDistance) {
-      // Tap - check if on skill buttons
+      // Tap - basic attack or skill buttons
       this.handleTap(this.touchStartX, this.touchStartY);
       return;
     }
@@ -128,10 +128,16 @@ class TouchControls {
   }
 
   handleTap(x, y) {
-    // Check if tap is on skill button area
     const screenWidth = window.innerWidth;
     const screenHeight = window.innerHeight;
 
+    // Left side tap - basic attack
+    if (x < screenWidth / 2) {
+      this.game.useBasicAttack();
+      return;
+    }
+
+    // Right side tap - skills
     if (x > screenWidth / 2 && y > screenHeight / 2) {
       // Bottom right - skill area
       const relX = (x - screenWidth / 2) / (screenWidth / 2);
@@ -453,6 +459,10 @@ class Game {
           this.useSkill(skillIndex);
         }
 
+        if (key === 'a') {
+          this.useBasicAttack();
+        }
+
         if (e.key === ' ' && !this.isJumping) {
           this.jump();
         }
@@ -746,6 +756,23 @@ class Game {
     tts.speak(`Dùng ${skill.name}. Sát thương ${skill.damage}`);
 
     this.startCooldownUI(skillIndex, skill.cooldown);
+  }
+
+  useBasicAttack() {
+    if (!this.myPlayer) return;
+
+    if (this.isOfflineMode) {
+      this.gameEngine.handlePlayerInput('player1', {
+        type: 'basicAttack'
+      });
+      this.gameState = this.gameEngine.getState();
+      this.updateGameInfo();
+    } else {
+      // Online mode - send to server
+      this.socket.emit('basicAttack', {
+        targetId: this.enemies[0]?.id
+      });
+    }
   }
 
   startCooldownUI(skillIndex, cooldown) {

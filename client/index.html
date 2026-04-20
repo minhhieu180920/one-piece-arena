@@ -96,6 +96,11 @@
         <canvas id="game-canvas" aria-label="Khu vực trận đấu"></canvas>
 
         <div class="skills-bar" role="group" aria-label="Kỹ năng chiến đấu">
+          <button class="skill-btn" data-skill="basic" onclick="game.useBasicAttack()" tabindex="0" aria-label="Đánh thường, phím A">
+            <span class="skill-key">A</span>
+            <span class="skill-name">Đánh thường</span>
+            <span class="cooldown" aria-live="polite"></span>
+          </button>
           <button class="skill-btn" data-skill="0" onclick="game.useSkill(0)" tabindex="0" aria-label="Kỹ năng 1, phím Q">
             <span class="skill-key">Q</span>
             <span class="skill-name">Skill 1</span>
@@ -121,7 +126,7 @@
         <!-- Mobile Touch Instructions -->
         <div id="mobile-instructions" style="display: none; position: fixed; bottom: 10px; left: 10px; background: rgba(0,0,0,0.8); padding: 10px; border-radius: 5px; font-size: 12px;">
           <p>📱 Điều khiển di động:</p>
-          <p>Bên trái: Vút để di chuyển, vút lên để nhảy</p>
+          <p>Bên trái: Vút để di chuyển, vút lên để nhảy, chạm để đánh thường</p>
           <p>Bên phải: Vút để dùng kỹ năng</p>
         </div>
       </div>

@@ -71,6 +71,9 @@ class ClientGameEngine {
       case 'skill':
         this.handleSkill(player, input.skillIndex);
         break;
+      case 'basicAttack':
+        this.handleBasicAttack(player);
+        break;
     }
   }
 
@@ -109,7 +112,7 @@ class ClientGameEngine {
 
     skill.lastUsed = now;
     audioManager.playSkill(player.heroId, skillIndex);
-    tts.speak(`Dùng ${skill.name}`);
+    tts.speak(`Dùng ${skill.name}. ${skill.effect}`);
 
     // Check hit on enemies
     const enemies = Array.from(this.players.values()).filter(p => p.id !== player.id);
@@ -124,9 +127,20 @@ class ClientGameEngine {
 
         if (isFacingEnemy) {
           hit = true;
-          enemy.hp = Math.max(0, enemy.hp - skill.damage);
-          audioManager.playHit();
-          tts.speak(`Gây ${skill.damage} sát thương. ${enemy.name} còn ${enemy.hp} máu`);
+
+          // Check critical hit (10% chance)
+          const isCritical = Math.random() < 0.1;
+          const finalDamage = isCritical ? skill.damage * 2 : skill.damage;
+
+          enemy.hp = Math.max(0, enemy.hp - finalDamage);
+
+          if (isCritical) {
+            audioManager.playHit();
+            tts.speak(`Chí mạng! Gây ${finalDamage} sát thương. ${enemy.name} còn ${enemy.hp} máu`);
+          } else {
+            audioManager.playHit();
+            tts.speak(`Gây ${finalDamage} sát thương. ${enemy.name} còn ${enemy.hp} máu`);
+          }
 
           if (enemy.hp <= 0) {
             this.handleGameOver(player.id);
@@ -138,6 +152,53 @@ class ClientGameEngine {
     if (!hit) {
       audioManager.playMiss();
       tts.speak('Trượt');
+    }
+  }
+
+  handleBasicAttack(player) {
+    const basicAttack = player.hero.basicAttack;
+    if (!basicAttack) return;
+
+    const now = Date.now();
+    if (now - (player.lastBasicAttack || 0) < basicAttack.cooldown) {
+      return;
+    }
+
+    player.lastBasicAttack = now;
+
+    // Play basic attack sound
+    const attackSounds = player.hero.voiceLines.attack;
+    const randomSound = attackSounds[Math.floor(Math.random() * attackSounds.length)];
+    audioManager.play(randomSound, 0.6);
+
+    tts.speak(`${basicAttack.name}`);
+
+    // Check hit on enemies
+    const enemies = Array.from(this.players.values()).filter(p => p.id !== player.id);
+    let hit = false;
+
+    enemies.forEach(enemy => {
+      const distance = Math.abs(player.x - enemy.x);
+      if (distance <= 150) { // Basic attack has shorter range
+        const isFacingEnemy =
+          (player.facing === 'right' && enemy.x > player.x) ||
+          (player.facing === 'left' && enemy.x < player.x);
+
+        if (isFacingEnemy) {
+          hit = true;
+          enemy.hp = Math.max(0, enemy.hp - basicAttack.damage);
+          audioManager.playHit();
+          tts.speak(`Gây ${basicAttack.damage} sát thương`);
+
+          if (enemy.hp <= 0) {
+            this.handleGameOver(player.id);
+          }
+        }
+      }
+    });
+
+    if (!hit) {
+      audioManager.playMiss();
     }
   }
 
