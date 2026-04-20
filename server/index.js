@@ -22,6 +22,11 @@ let roomIdCounter = 1;
 // Serve static files
 app.use(express.static(path.join(__dirname, '../client')));
 
+// Serve version.json for auto-update
+app.get('/version.json', (req, res) => {
+  res.sendFile(path.join(__dirname, '../version.json'));
+});
+
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '../client/index.html'));
 });

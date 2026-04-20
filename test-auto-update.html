@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Auto-Update System</title>
+  <link rel="stylesheet" href="client/css/auto-update.css">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .test-panel {
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #333;
+      margin-bottom: 30px;
+    }
+    .btn {
+      padding: 15px 30px;
+      font-size: 16px;
+      margin: 10px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      background: #667eea;
+      color: white;
+      font-weight: bold;
+    }
+    .btn:hover {
+      background: #5568d3;
+    }
+    .info {
+      background: #e3f2fd;
+      padding: 15px;
+      border-radius: 5px;
+      margin: 20px 0;
+      border-left: 4px solid #2196F3;
+    }
+    .status {
+      margin-top: 20px;
+      padding: 15px;
+      background: #f9f9f9;
+      border-radius: 5px;
+      font-family: monospace;
+    }
+  </style>
+</head>
+<body>
+  <div class="test-panel">
+    <h1>🔄 Test Auto-Update System</h1>
+
+    <div class="info">
+      <strong>Phiên bản hiện tại:</strong> v2.0.0 (versionCode: 2)<br>
+      <strong>Server:</strong> <span id="server-url">Đang kiểm tra...</span>
+    </div>
+
+    <h3>Test Actions:</h3>
+    <button class="btn" onclick="testCheckUpdate()">Kiểm tra cập nhật</button>
+    <button class="btn" onclick="testShowNotification()">Hiển thị popup demo</button>
+    <button class="btn" onclick="testTTS()">Test TTS</button>
+    <button class="btn" onclick="clearCache()">Xóa cache</button>
+
+    <div class="status" id="status">
+      Sẵn sàng test...
+    </div>
+  </div>
+
+  <script src="client/js/auto-update.js"></script>
+  <script>
+    const statusEl = document.getElementById('status');
+
+    function log(message) {
+      const time = new Date().toLocaleTimeString();
+      statusEl.innerHTML += `[${time}] ${message}<br>`;
+      statusEl.scrollTop = statusEl.scrollHeight;
+    }
+
+    // Check server
+    fetch('/version.json')
+      .then(r => r.json())
+      .then(data => {
+        document.getElementById('server-url').textContent =
+          `✅ Connected - Latest: v${data.version}`;
+        log(`Server version: v${data.version} (code: ${data.versionCode})`);
+      })
+      .catch(err => {
+        document.getElementById('server-url').textContent = '❌ Không kết nối được';
+        log(`Error: ${err.message}`);
+      });
+
+    async function testCheckUpdate() {
+      log('Đang kiểm tra cập nhật...');
+      await autoUpdater.checkForUpdates();
+      log('Kiểm tra hoàn tất');
+    }
+
+    function testShowNotification() {
+      log('Hiển thị popup demo...');
+      const demoData = {
+        version: '2.1.0',
+        versionCode: 3,
+        downloadUrl: 'https://example.com/app.apk',
+        changelog: [
+          'Thêm hero mới: Sanji',
+          'Cải thiện AI bot',
+          'Âm thanh 3D tốt hơn',
+          'Sửa lỗi crash'
+        ],
+        forceUpdate: false
+      };
+      autoUpdater.showUpdateNotification(demoData);
+      log('Popup đã hiển thị');
+    }
+
+    function testTTS() {
+      log('Test TTS...');
+      const message = 'Có phiên bản mới 2.1.0. Thêm hero mới Sanji. Cải thiện AI bot. Nhấn nút tải về để cập nhật.';
+      if (window.speechSynthesis) {
+        const utterance = new SpeechSynthesisUtterance(message);
+        utterance.lang = 'vi-VN';
+        utterance.rate = 1.0;
+        window.speechSynthesis.speak(utterance);
+        log('TTS đang phát...');
+      } else {
+        log('TTS không được hỗ trợ');
+      }
+    }
+
+    function clearCache() {
+      localStorage.removeItem('lastUpdateCheck');
+      log('Đã xóa cache kiểm tra cập nhật');
+    }
+
+    log('Test panel ready');
+  </script>
+</body>
+</html>
