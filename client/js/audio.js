@@ -149,23 +149,43 @@ class AudioManager {
     console.log(`Loaded sounds for ${heroId}`);
   }
 
-  play(key, volume = 1.0) {
+  play(key, volume = 1.0, panValue = 0) {
     if (!this.initialized || !this.sounds.has(key)) return;
 
     try {
       const source = this.context.createBufferSource();
       const gainNode = this.context.createGain();
+      const pannerNode = this.context.createStereoPanner();
 
       source.buffer = this.sounds.get(key);
       gainNode.gain.value = volume;
+      pannerNode.pan.value = panValue; // -1 (left) to 1 (right)
 
       source.connect(gainNode);
-      gainNode.connect(this.context.destination);
+      gainNode.connect(pannerNode);
+      pannerNode.connect(this.context.destination);
 
       source.start(0);
     } catch (e) {
       console.error(`Failed to play sound: ${key}`, e);
     }
+  }
+
+  play3D(key, volume = 1.0, x, myX) {
+    // Calculate pan based on position
+    // x: enemy position, myX: player position
+    const distance = x - myX;
+    const maxDistance = 400; // Max hearing distance
+
+    // Pan: -1 (left) to 1 (right)
+    let pan = distance / maxDistance;
+    pan = Math.max(-1, Math.min(1, pan));
+
+    // Volume based on distance
+    const distanceAbs = Math.abs(distance);
+    const volumeMultiplier = Math.max(0.2, 1 - (distanceAbs / maxDistance));
+
+    this.play(key, volume * volumeMultiplier, pan);
   }
 
   playSkill(heroId, skillIndex) {

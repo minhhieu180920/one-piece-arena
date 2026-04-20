@@ -114,6 +114,13 @@ class ClientGameEngine {
     audioManager.playSkill(player.heroId, skillIndex);
     tts.speak(`Dùng ${skill.name}. ${skill.effect}`);
 
+    // Play skill sound with 3D audio from player position
+    const myPlayer = Array.from(this.players.values()).find(p => p.id === 'player1');
+    if (myPlayer && player.id !== 'player1') {
+      // Enemy using skill - play 3D sound
+      audioManager.play3D(`${player.heroId}_skill${skillIndex}`, 0.8, player.x, myPlayer.x);
+    }
+
     // Check hit on enemies
     const enemies = Array.from(this.players.values()).filter(p => p.id !== player.id);
     let hit = false;
@@ -134,12 +141,22 @@ class ClientGameEngine {
 
           enemy.hp = Math.max(0, enemy.hp - finalDamage);
 
+          // Play hit sound with 3D audio
+          if (myPlayer) {
+            audioManager.play3D('game_2', 0.7, enemy.x, myPlayer.x);
+          }
+
           if (isCritical) {
-            audioManager.playHit();
             tts.speak(`Chí mạng! Gây ${finalDamage} sát thương. ${enemy.name} còn ${enemy.hp} máu`);
           } else {
-            audioManager.playHit();
             tts.speak(`Gây ${finalDamage} sát thương. ${enemy.name} còn ${enemy.hp} máu`);
+          }
+
+          // Announce enemy position
+          const direction = enemy.x > myPlayer.x ? 'bên phải' : 'bên trái';
+          const distanceText = Math.round(distance / 100);
+          if (enemy.id === 'player1') {
+            tts.speak(`Bị tấn công từ ${direction}, cách ${distanceText} mét`);
           }
 
           if (enemy.hp <= 0) {
