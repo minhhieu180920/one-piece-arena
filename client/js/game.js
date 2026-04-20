@@ -179,6 +179,12 @@ class Game {
 
     // Touch controls
     this.touchControls = new TouchControls(this);
+
+    // Offline mode
+    this.isOfflineMode = false;
+    this.gameEngine = null;
+    this.aiBot = null;
+    this.aiDifficulty = 'medium';
   }
 
   init() {
@@ -210,6 +216,87 @@ class Game {
     setTimeout(() => {
       audioManager.playMenuSound('lobby');
     }, 500);
+  }
+
+  // Offline mode methods
+  startOfflineGame(difficulty) {
+    this.isOfflineMode = true;
+    this.aiDifficulty = difficulty;
+    this.showScreen('hero-screen');
+    const diffNames = { easy: 'Dễ', medium: 'Trung bình', hard: 'Khó' };
+    tts.speak(`Chế độ chơi đơn, độ khó ${diffNames[difficulty]}. Hãy chọn hero`);
+    audioManager.playMenuSound('select');
+  }
+
+  selectHeroOffline(heroId) {
+    this.selectedHero = heroId;
+    this.playerId = 'player1';
+
+    const hero = HEROES[heroId];
+    audioManager.playMenuSound('select');
+    tts.speak(`Đã chọn ${hero.name}`);
+
+    // Start game immediately
+    setTimeout(() => {
+      this.startOfflineMatch();
+    }, 1000);
+  }
+
+  startOfflineMatch() {
+    // Create game engine
+    this.gameEngine = new ClientGameEngine();
+
+    // Setup players
+    const playerHero = HEROES[this.selectedHero];
+    const aiHeroIds = Object.keys(HEROES).filter(id => id !== this.selectedHero);
+    const aiHeroId = aiHeroIds[Math.floor(Math.random() * aiHeroIds.length)];
+    const aiHero = HEROES[aiHeroId];
+
+    const players = [
+      {
+        id: 'player1',
+        name: 'BẠN',
+        heroId: this.selectedHero,
+        hero: playerHero,
+        x: 200,
+        y: 350
+      },
+      {
+        id: 'bot_ai',
+        name: 'AI BOT',
+        heroId: aiHeroId,
+        hero: aiHero,
+        x: 600,
+        y: 350,
+        isAI: true
+      }
+    ];
+
+    this.gameEngine.start(players);
+
+    // Setup AI
+    this.aiBot = new AIBot(this.aiDifficulty);
+
+    // Start game
+    this.gameState = this.gameEngine.getState();
+    this.myPlayer = this.gameEngine.players.get('player1');
+    this.enemies = [this.gameEngine.players.get('bot_ai')];
+
+    this.showScreen('game-screen');
+    this.updateGameInfo();
+    this.updateSkillButtons();
+    this.render();
+    this.gameLoop();
+
+    tts.speak(`Trận đấu bắt đầu! Bạn là ${playerHero.name}, đối thủ là ${aiHero.name}`, true);
+  }
+
+  backToLobby() {
+    this.isOfflineMode = false;
+    this.selectedHero = null;
+    this.showScreen('lobby-screen');
+    tts.speak('Quay lại sảnh chờ');
+    audioManager.playMenuSound('back');
   }
 
   setupSocketListeners() {
@@ -618,10 +705,22 @@ class Game {
     }
 
     this.skillCooldowns[skillIndex] = now;
-    this.socket.emit('useSkill', {
-      skillId: skillIndex,
-      targetId: this.enemies[0].id
-    });
+
+    if (this.isOfflineMode) {
+      // Client-side skill execution
+      this.gameEngine.handlePlayerInput('player1', {
+        type: 'skill',
+        skillIndex: skillIndex
+      });
+      this.gameState = this.gameEngine.getState();
+      this.updateGameInfo();
+    } else {
+      // Online mode - send to server
+      this.socket.emit('useSkill', {
+        skillId: skillIndex,
+        targetId: this.enemies[0].id
+      });
+    }
 
     audioManager.playSkill(this.myPlayer.heroId, skillIndex);
     tts.speak(`Dùng ${skill.name}. Sát thương ${skill.damage}`);
@@ -688,6 +787,10 @@ class Game {
   }
 
   gameOver(won) {
+    if (this.isOfflineMode && this.gameEngine) {
+      this.gameEngine.stop();
+    }
+
     setTimeout(() => {
       if (won) {
         audioManager.playVoice(this.myPlayer.heroId, 6);
@@ -699,7 +802,11 @@ class Game {
         alert('💀 Bạn thua!');
       }
 
-      this.leaveRoom();
+      if (this.isOfflineMode) {
+        this.backToLobby();
+      } else {
+        this.leaveRoom();
+      }
     }, 1000);
   }
 
@@ -808,6 +915,32 @@ class Game {
 
   gameLoop() {
     if (this.gameState) {
+      // Update AI in offline mode
+      if (this.isOfflineMode && this.aiBot) {
+        const botPlayer = this.gameEngine.players.get('bot_ai');
+        const playerPlayer = this.gameEngine.players.get('player1');
+
+        const aiAction = this.aiBot.update(botPlayer, playerPlayer, this.gameEngine);
+        if (aiAction) {
+          this.gameEngine.handlePlayerInput('bot_ai', aiAction);
+        }
+
+        // Check game over
+        if (botPlayer.hp <= 0) {
+          this.gameOver(true);
+          return;
+        }
+        if (playerPlayer.hp <= 0) {
+          this.gameOver(false);
+          return;
+        }
+
+        // Update game state
+        this.gameState = this.gameEngine.getState();
+        this.myPlayer = playerPlayer;
+        this.enemies = [botPlayer];
+      }
+
       this.updateMovement();
       this.render();
       requestAnimationFrame(() => this.gameLoop());
