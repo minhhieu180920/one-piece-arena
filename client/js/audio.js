@@ -84,6 +84,8 @@ class AudioManager {
     this.sounds = new Map();
     this.context = null;
     this.initialized = false;
+    this.bgMusic = null;
+    this.bgMusicSource = null;
   }
 
   async init() {
@@ -253,6 +255,56 @@ class AudioManager {
 
   playHeal() {
     this.play('game_4', 0.7);
+  }
+
+  async loadBGMusic(type) {
+    const musicFiles = {
+      menu: 'menu/menu-bg.mp3',
+      battle: 'common/battle-bg.mp3',
+      battleStart: 'common/battle-start.mp3'
+    };
+
+    const path = musicFiles[type];
+    if (!path) return;
+
+    try {
+      const response = await fetch(`sounds/${path}`);
+      const arrayBuffer = await response.arrayBuffer();
+      this.bgMusic = await this.context.decodeAudioData(arrayBuffer);
+    } catch (e) {
+      console.error(`Failed to load BG music: ${path}`, e);
+    }
+  }
+
+  playBGMusic(type, loop = true, volume = 0.3) {
+    this.stopBGMusic();
+
+    this.loadBGMusic(type).then(() => {
+      if (!this.bgMusic || !this.initialized) return;
+
+      this.bgMusicSource = this.context.createBufferSource();
+      const gainNode = this.context.createGain();
+
+      this.bgMusicSource.buffer = this.bgMusic;
+      this.bgMusicSource.loop = loop;
+      gainNode.gain.value = volume;
+
+      this.bgMusicSource.connect(gainNode);
+      gainNode.connect(this.context.destination);
+
+      this.bgMusicSource.start(0);
+    });
+  }
+
+  stopBGMusic() {
+    if (this.bgMusicSource) {
+      try {
+        this.bgMusicSource.stop();
+      } catch (e) {
+        // Already stopped
+      }
+      this.bgMusicSource = null;
+    }
   }
 }
 

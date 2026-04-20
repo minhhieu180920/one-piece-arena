@@ -210,6 +210,7 @@ class Game {
         await audioManager.init();
         await audioManager.preloadMenuSounds();
         await audioManager.preloadGameSounds();
+        audioManager.playBGMusic('menu', true, 0.2);
         tts.speak('Hệ thống âm thanh đã sẵn sàng');
       }
     }, { once: true });
@@ -293,12 +294,20 @@ class Game {
     this.render();
     this.gameLoop();
 
+    // Play battle music
+    audioManager.playBGMusic('battleStart', false, 0.4);
+    setTimeout(() => {
+      audioManager.playBGMusic('battle', true, 0.3);
+    }, 35000); // After battle start music ends
+
     tts.speak(`Trận đấu bắt đầu! Bạn là ${playerHero.name}, đối thủ là ${aiHero.name}`, true);
   }
 
   backToLobby() {
     this.isOfflineMode = false;
     this.selectedHero = null;
+    audioManager.stopBGMusic();
+    audioManager.playBGMusic('menu', true, 0.2);
     this.showScreen('lobby-screen');
     tts.speak('Quay lại sảnh chờ');
     audioManager.playMenuSound('back');
@@ -659,6 +668,12 @@ class Game {
     this.updateSkillButtons();
     this.render();
     this.gameLoop();
+
+    // Play battle music for online mode
+    audioManager.playBGMusic('battleStart', false, 0.4);
+    setTimeout(() => {
+      audioManager.playBGMusic('battle', true, 0.3);
+    }, 35000);
 
     tts.speak(`Máu của bạn: ${this.myPlayer.hp}. Máu đối thủ: ${this.enemies[0].hp}`, true);
   }
