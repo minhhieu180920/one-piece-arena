@@ -139,15 +139,19 @@ class Game {
     this.addMenuSoundEffects();
     this.touchControls.init();
 
-    document.addEventListener('click', async () => {
+    const initAudio = async () => {
       if (!audioManager.initialized) {
         await audioManager.init();
         await audioManager.preloadMenuSounds();
         await audioManager.preloadGameSounds();
         audioManager.playBGMusic('menu', true, 0.15);
-        tts.speak('Hệ thống âm thanh kiếm hiệp đã sẵn sàng');
+        tts.speak('Hệ thống âm thanh kiếmiệp đã sẵn sàng');
       }
-    }, { once: true });
+    };
+    document.addEventListener('click', initAudio, { once: true });
+    document.addEventListener('touchstart', initAudio, { once: true });
+    document.addEventListener('mousedown', initAudio, { once: true });
+    document.addEventListener('pointerdown', initAudio, { once: true });
 
     tts.speak('Chào mừng đến với Võ Lâm Đấu Trường');
     setTimeout(() => audioManager.playMenuSound('lobby'), 500);

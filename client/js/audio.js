@@ -158,7 +158,7 @@ class AudioManager {
     if (!this.initialized || this.sounds.has(key)) return;
 
     try {
-      const response = await fetch(`sounds/${path}`);
+      const response = await fetch(`client/sounds/${path}`);
       const arrayBuffer = await response.arrayBuffer();
       const audioBuffer = await this.context.decodeAudioData(arrayBuffer);
       this.sounds.set(key, audioBuffer);
@@ -360,7 +360,7 @@ class AudioManager {
     if (!path || !this.initialized) return;
 
     try {
-      const response = await fetch(`sounds/${path}`);
+      const response = await fetch(`client/sounds/${path}`);
       const arrayBuffer = await response.arrayBuffer();
       this.bgMusic = await this.context.decodeAudioData(arrayBuffer);
     } catch (e) {
