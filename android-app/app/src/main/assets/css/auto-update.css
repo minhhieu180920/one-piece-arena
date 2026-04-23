@@ -1,0 +1,119 @@
+.update-notification {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    z-index: 10000;
+    max-width: 90%;
+    width: 500px;
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -60%);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, -50%);
+    }
+}
+
+.update-notification h3 {
+    margin: 0 0 20px 0;
+    font-size: 24px;
+    font-weight: bold;
+    text-align: center;
+}
+
+.update-notification ul {
+    list-style: none;
+    padding: 0;
+    margin: 20px 0;
+}
+
+.update-notification li {
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    font-size: 16px;
+}
+
+.update-notification li:last-child {
+    border-bottom: none;
+}
+
+.update-buttons {
+    display: flex;
+    gap: 15px;
+    margin-top: 25px;
+    justify-content: center;
+}
+
+.update-btn {
+    flex: 1;
+    padding: 15px 25px;
+    font-size: 18px;
+    font-weight: bold;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-height: 60px;
+}
+
+.download-btn {
+    background: #4CAF50;
+    color: white;
+}
+
+.download-btn:hover {
+    background: #45a049;
+    transform: scale(1.05);
+}
+
+.download-btn:active {
+    transform: scale(0.95);
+}
+
+.later-btn {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+}
+
+.later-btn:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.later-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+@media (max-width: 600px) {
+    .update-notification {
+        width: 95%;
+        padding: 20px;
+    }
+
+    .update-notification h3 {
+        font-size: 20px;
+    }
+
+    .update-notification li {
+        font-size: 14px;
+    }
+
+    .update-buttons {
+        flex-direction: column;
+    }
+
+    .update-btn {
+        width: 100%;
+    }
+}

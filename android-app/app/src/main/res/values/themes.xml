@@ -1,0 +1,8 @@
+<resources>
+    <style name="Theme.OnePieceArena" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="colorPrimary">#667eea</item>
+        <item name="colorPrimaryDark">#5568d3</item>
+        <item name="colorAccent">#764ba2</item>
+        <item name="android:windowFullscreen">true</item>
+    </style>
+</resources>

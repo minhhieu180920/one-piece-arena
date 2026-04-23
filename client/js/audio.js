@@ -1,4 +1,60 @@
-// TTS Manager for Accessibility
+// Custom sound mapping for heroes
+const CUSTOM_SOUND_MAP = {
+  doan_du: {
+    basicAttack: ["剑丢下.mp3", "砍头.mp3"],
+    skill1: ["击打声1.wav", "拳法左1.wav"],
+    skill2: ["拔刀多人.mp3", "乱箭发射.mp3"],
+    skill3: ["治疗左1.wav", "治疗右1.wav"],
+    skill4: ["银龙剑诀.wav", "光魔法攻击左1.wav"],
+    select: ["提示1.WAV", "提示2.wav"],
+    attack: ["击打声1.wav", "拳法左1.wav"],
+    hurt: ["摔倒1.wav", "摔倒在沙地上.wav"],
+    victory: ["战斗胜利.wav"],
+    defeat: ["战斗失败.wav"],
+    ambientFootsteps: ["脚步沙地.wav", "脚步树林.wav"],
+    ambientQinggong: ["qinggong_wind.wav"],
+    ambientMeditate: ["meditate_loop.wav"]
+  },
+  quach_tinh: {
+    basicAttack: ["剑丢下.mp3"],
+    skill1: ["七星拳.wav"],
+    skill2: ["拔刀多人.mp3"],
+    skill3: ["治疗右1.wav"],
+    skill4: ["银龙剑诀.wav"],
+    select: ["提示2.wav"],
+    attack: ["击打声1.wav"],
+    hurt: ["摔倒1.wav"],
+    victory: ["战斗胜利.wav"],
+    defeat: ["战斗失败.wav"],
+    ambientFootsteps: ["脚步石头.wav"],
+    ambientQinggong: ["qinggong_wind.wav"],
+    ambientMeditate: ["meditate_loop.wav"]
+  },
+  truong_vo_ky: {
+    basicAttack: ["剑丢下.mp3"],
+    skill1: ["拳法左1.wav"],
+    skill2: ["治疗左1.wav"],
+    skill3: ["光魔法攻击左1.wav"],
+    skill4: ["银龙剑诀.wav"],
+    select: ["提示3.wav"],
+    attack: ["击打声1.wav"],
+    hurt: ["摔倒1.wav"],
+    victory: ["战斗胜利.wav"],
+    defeat: ["战斗失败.wav"],
+    ambientFootsteps: ["脚步树林.wav"],
+    ambientQinggong: ["qinggong_wind.wav"],
+    ambientMeditate: ["meditate_loop.wav"]
+  }
+};
+
+// Deterministic sound mapping for heroes – always play the first entry for each key
+AudioManager.prototype.playFixed = function(heroId, key, volume = 1.0, pan = 0, loop = false) {
+  const list = CUSTOM_SOUND_MAP[heroId] && CUSTOM_SOUND_MAP[heroId][key];
+  if (!list || list.length === 0) return null;
+  const chosen = list[0]; // always the first defined sound
+  return this.play(chosen, volume, pan, loop);
+};
+
 class TTSManager {
   constructor() {
     this.synth = window.speechSynthesis;
@@ -10,7 +66,6 @@ class TTSManager {
   }
 
   init() {
-    // Wait for voices to load
     if (this.synth.getVoices().length > 0) {
       this.selectVoice();
     } else {
@@ -22,14 +77,13 @@ class TTSManager {
 
   selectVoice() {
     const voices = this.synth.getVoices();
-    // Prefer Vietnamese voice, fallback to English
     this.voice = voices.find(v => v.lang.startsWith('vi')) ||
                  voices.find(v => v.lang.startsWith('en')) ||
                  voices[0];
   }
 
   speak(text, priority = false) {
-    if (!this.enabled) return;
+    if (!this.enabled || !text) return;
 
     if (priority) {
       this.synth.cancel();
@@ -78,7 +132,6 @@ class TTSManager {
   }
 }
 
-// Audio Manager
 class AudioManager {
   constructor() {
     this.sounds = new Map();
@@ -86,6 +139,7 @@ class AudioManager {
     this.initialized = false;
     this.bgMusic = null;
     this.bgMusicSource = null;
+    this.ambientSource = null;
   }
 
   async init() {
@@ -101,7 +155,7 @@ class AudioManager {
   }
 
   async loadSound(key, path) {
-    if (this.sounds.has(key)) return;
+    if (!this.initialized || this.sounds.has(key)) return;
 
     try {
       const response = await fetch(`sounds/${path}`);
@@ -113,44 +167,70 @@ class AudioManager {
     }
   }
 
-  async preloadHeroSounds(heroId) {
-    const heroes = {
-      luffy: {
-        skills: ['luffy/0001_sound.wav', 'luffy/0008_sound.wav', 'luffy/0015_sound.wav', 'luffy/0019_sound.wav'],
-        voices: ['luffy/0002_sound.wav', 'luffy/0003_sound.wav', 'luffy/0004_sound.wav', 'luffy/0005_sound.wav',
-                 'luffy/0006_sound.wav', 'luffy/0007_sound.wav', 'luffy/0020_sound.wav', 'luffy/0018_sound.wav']
-      },
-      zoro: {
-        skills: ['zoro/0001_sound.wav', 'zoro/0008_sound.wav', 'zoro/0014_sound.wav', 'zoro/0018_sound.wav'],
-        voices: ['zoro/0002_sound.wav', 'zoro/0003_sound.wav', 'zoro/0004_sound.wav', 'zoro/0005_sound.wav',
-                 'zoro/0006_sound.wav', 'zoro/0007_sound.wav', 'zoro/0020_sound.wav', 'zoro/0019_sound.wav']
-      },
-      sanji: {
-        skills: ['sanji/0001_sound.wav', 'sanji/0007_sound.wav', 'sanji/0012_sound.wav', 'sanji/0018_sound.wav'],
-        voices: ['sanji/0002_sound.wav', 'sanji/0003_sound.wav', 'sanji/0004_sound.wav', 'sanji/0005_sound.wav',
-                 'sanji/0006_sound.wav', 'sanji/0008_sound.wav', 'sanji/0020_sound.wav', 'sanji/0019_sound.wav']
+  buildHeroSoundMap(heroId) {
+    const hero = HEROES[heroId];
+    if (!hero) return [];
+
+    const sounds = [];
+    sounds.push([`${heroId}_basic`, hero.basicAttack.sound]);
+    hero.skills.forEach((skill, idx) => {
+      sounds.push([`${heroId}_skill${idx}`, skill.sound]);
+      if (skill.impactSound) {
+        sounds.push([`${heroId}_skill${idx}_impact`, skill.impactSound]);
       }
-    };
-
-    const hero = heroes[heroId];
-    if (!hero) return;
-
-    const promises = [];
-
-    hero.skills.forEach((path, idx) => {
-      promises.push(this.loadSound(`${heroId}_skill${idx}`, path));
     });
 
-    hero.voices.forEach((path, idx) => {
-      promises.push(this.loadSound(`${heroId}_voice${idx}`, path));
-    });
+    sounds.push([`${heroId}_voice_select`, hero.voiceLines.select]);
+    hero.voiceLines.attack.forEach((path, idx) => sounds.push([`${heroId}_voice_attack${idx}`, path]));
+    hero.voiceLines.hurt.forEach((path, idx) => sounds.push([`${heroId}_voice_hurt${idx}`, path]));
+    sounds.push([`${heroId}_voice_victory`, hero.voiceLines.victory]);
+    sounds.push([`${heroId}_voice_defeat`, hero.voiceLines.defeat]);
+    sounds.push([`${heroId}_ambient_footsteps`, hero.ambientProfile.footsteps]);
+    sounds.push([`${heroId}_ambient_qinggong`, hero.ambientProfile.qinggong]);
+    sounds.push([`${heroId}_ambient_meditate`, hero.ambientProfile.meditate]);
 
-    await Promise.all(promises);
-    console.log(`Loaded sounds for ${heroId}`);
+    return sounds;
   }
 
-  play(key, volume = 1.0, panValue = 0) {
-    if (!this.initialized || !this.sounds.has(key)) return;
+  async preloadHeroSounds(heroId) {
+    const heroSounds = this.buildHeroSoundMap(heroId);
+    await Promise.all(heroSounds.map(([key, path]) => this.loadSound(key, path)));
+  }
+
+  async preloadMenuSounds() {
+    const menuSounds = [
+      ['menu_move', 'menu/move.wav'],
+      ['menu_select', 'menu/select.wav'],
+      ['menu_back', 'menu/back.wav'],
+      ['ui_no_chi', 'ui/no-chi.wav'],
+      ['ui_lane', 'ui/lane-shift.wav']
+    ];
+
+    await Promise.all(menuSounds.map(([key, path]) => this.loadSound(key, path)));
+  }
+
+  async preloadGameSounds() {
+    const gameSounds = [
+      ['game_jump', 'common/jump.wav'],
+      ['game_walk', 'common/walk.wav'],
+      ['game_hit', 'common/hit.wav'],
+      ['game_miss', 'common/miss.wav'],
+      ['game_heal', 'common/heal.wav'],
+      ['game_dodge', 'common/dodge.wav'],
+      ['environment_footstep_grass', 'environment/footstep_grass.wav'],
+      ['environment_footstep_stone', 'environment/footstep_stone.wav'],
+      ['environment_qinggong_wind', 'environment/qinggong_wind.wav'],
+      ['environment_qinggong_burst', 'environment/qinggong_burst.wav'],
+      ['environment_meditate_loop', 'environment/meditate_loop.wav'],
+      ['environment_birds', 'environment/birds_loop.wav'],
+      ['environment_wind', 'environment/wind_loop.wav']
+    ];
+
+    await Promise.all(gameSounds.map(([key, path]) => this.loadSound(key, path)));
+  }
+
+  play(key, volume = 1.0, panValue = 0, loop = false) {
+    if (!this.initialized || !this.sounds.has(key)) return null;
 
     try {
       const source = this.context.createBufferSource();
@@ -158,123 +238,115 @@ class AudioManager {
       const pannerNode = this.context.createStereoPanner();
 
       source.buffer = this.sounds.get(key);
+      source.loop = loop;
       gainNode.gain.value = volume;
-      pannerNode.pan.value = panValue; // -1 (left) to 1 (right)
+      pannerNode.pan.value = panValue;
 
       source.connect(gainNode);
       gainNode.connect(pannerNode);
       pannerNode.connect(this.context.destination);
-
       source.start(0);
+      return source;
     } catch (e) {
       console.error(`Failed to play sound: ${key}`, e);
+      return null;
     }
   }
 
   play3D(key, volume = 1.0, x, myX) {
-    // Calculate pan based on position
-    // x: enemy position, myX: player position
     const distance = x - myX;
-    const maxDistance = 400; // Max hearing distance
-
-    // Pan: -1 (left) to 1 (right)
+    const maxDistance = 500;
     let pan = distance / maxDistance;
     pan = Math.max(-1, Math.min(1, pan));
-
-    // Volume based on distance
     const distanceAbs = Math.abs(distance);
     const volumeMultiplier = Math.max(0.2, 1 - (distanceAbs / maxDistance));
-
     this.play(key, volume * volumeMultiplier, pan);
   }
 
   playSkill(heroId, skillIndex) {
-    this.play(`${heroId}_skill${skillIndex}`, 0.8);
+    this.play(`${heroId}_skill${skillIndex}`, 0.85);
   }
 
-  playVoice(heroId, voiceIndex) {
-    this.play(`${heroId}_voice${voiceIndex}`, 0.7);
-  }
-
-  playRandom(heroId, type) {
-    const count = type === 'skill' ? 4 : 8;
-    const idx = Math.floor(Math.random() * count);
-
-    if (type === 'skill') {
-      this.playSkill(heroId, idx);
+  playImpact(heroId, skillIndex, x, myX) {
+    const key = `${heroId}_skill${skillIndex}_impact`;
+    if (this.sounds.has(key)) {
+      this.play3D(key, 0.8, x, myX);
     } else {
-      this.playVoice(heroId, idx);
+      this.playHit();
     }
   }
 
-  async preloadMenuSounds() {
-    const menuSounds = [
-      'menu/move.wav',     // navigate/move
-      'menu/select.wav',   // enter/confirm
-      'menu/back.wav'      // back/cancel
-    ];
-
-    const promises = menuSounds.map((path, idx) =>
-      this.loadSound(`menu_${idx}`, path)
-    );
-
-    await Promise.all(promises);
+  playVoice(heroId, type, index = 0) {
+    const key = type === 'select'
+      ? `${heroId}_voice_select`
+      : type === 'victory'
+        ? `${heroId}_voice_victory`
+        : type === 'defeat'
+          ? `${heroId}_voice_defeat`
+          : `${heroId}_voice_${type}${index}`;
+    this.play(key, 0.7);
   }
 
-  async preloadGameSounds() {
-    const gameSounds = [
-      'common/jump.wav',   // jump
-      'common/walk.wav',   // walk/footstep
-      'common/hit.wav',    // hit/damage
-      'common/miss.wav',   // miss/dodge
-      'common/heal.wav'    // heal/recover
-    ];
-
-    const promises = gameSounds.map((path, idx) =>
-      this.loadSound(`game_${idx}`, path)
-    );
-
-    await Promise.all(promises);
-  }
-
-  async playMenuSound(type) {
-    // Auto-init audio on first interaction
-    if (!this.initialized) {
-      await this.init();
-      await this.preloadMenuSounds();
-      await this.preloadGameSounds();
-    }
-
+  playMenuSound(type) {
     const sounds = {
-      hover: 'menu_0',
-      click: 'menu_1',
-      select: 'menu_1',
-      back: 'menu_2',
-      navigate: 'menu_0',
-      enter: 'menu_1',
-      lobby: 'menu_1'
+      hover: 'menu_move',
+      click: 'menu_select',
+      select: 'menu_select',
+      back: 'menu_back',
+      navigate: 'menu_move',
+      enter: 'menu_select',
+      lobby: 'menu_select'
     };
-    this.play(sounds[type] || 'menu_0', 0.5);
+    this.play(sounds[type] || 'menu_move', 0.5);
   }
 
   playJump() {
-    this.play('game_0', 0.6);
+    this.play('game_jump', 0.6);
   }
 
-  playWalk() {
-    this.play('game_1', 0.3);
+  playWalk(heroId = null) {
+    const key = heroId ? `${heroId}_ambient_footsteps` : 'game_walk';
+    this.play(this.sounds.has(key) ? key : 'game_walk', 0.25);
+  }
+
+  playFootstep(heroId = null) {
+    this.playWalk(heroId);
   }
 
   playHit() {
-    this.play('game_2', 0.7);
+    this.play('game_hit', 0.7);
   }
 
   playMiss() {
-    this.play('game_3', 0.6);
+    this.play('game_miss', 0.6);
   }
 
   playHeal() {
-    this.play('game_4', 0.7);
+    this.play('game_heal', 0.7);
+  }
+
+  playDodge() {
+    this.play('game_dodge', 0.6);
+  }
+
+  playQinggong(heroId = null) {
+    const key = heroId ? `${heroId}_ambient_qinggong` : 'environment_qinggong_wind';
+    this.play(this.sounds.has(key) ? key : 'environment_qinggong_wind', 0.6);
+  }
+
+  playMeditate(heroId = null) {
+    const key = heroId ? `${heroId}_ambient_meditate` : 'environment_meditate_loop';
+    this.play(this.sounds.has(key) ? key : 'environment_meditate_loop', 0.5);
+  }
+
+  playLaneShift() {
+    this.play('ui_lane', 0.5);
+  }
+
+  playUi(type) {
+    if (type === 'no_chi') {
+      this.play('ui_no_chi', 0.55);
+    }
   }
 
   async loadBGMusic(type) {
@@ -285,7 +357,7 @@ class AudioManager {
     };
 
     const path = musicFiles[type];
-    if (!path) return;
+    if (!path || !this.initialized) return;
 
     try {
       const response = await fetch(`sounds/${path}`);
@@ -304,25 +376,29 @@ class AudioManager {
 
       this.bgMusicSource = this.context.createBufferSource();
       const gainNode = this.context.createGain();
-
       this.bgMusicSource.buffer = this.bgMusic;
       this.bgMusicSource.loop = loop;
       gainNode.gain.value = volume;
-
       this.bgMusicSource.connect(gainNode);
       gainNode.connect(this.context.destination);
-
       this.bgMusicSource.start(0);
     });
+  }
+
+  playAmbientBattle() {
+    if (this.ambientSource) {
+      try { this.ambientSource.stop(); } catch (e) {}
+    }
+    const first = this.play('environment_birds', 0.18, -0.3, true);
+    const second = this.play('environment_wind', 0.14, 0.35, true);
+    this.ambientSource = second || first;
   }
 
   stopBGMusic() {
     if (this.bgMusicSource) {
       try {
         this.bgMusicSource.stop();
-      } catch (e) {
-        // Already stopped
-      }
+      } catch (e) {}
       this.bgMusicSource = null;
     }
   }
